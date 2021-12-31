@@ -1,0 +1,11 @@
+apply_preset:
+  name: Apply Preset
+  description: Move a set of covers to preset positions.
+  fields:
+    name:
+      name: Name
+      description: The name of the preset.
+      required: true
+      example: Preset 1
+      selector:
+        text:

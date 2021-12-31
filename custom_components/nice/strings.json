@@ -1,0 +1,116 @@
+{
+  "title": "Nice",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Define Integration",
+        "description": "Enter the details of this Integration",
+        "data": {
+          "title": "Integration Title"
+        }
+      },
+      "controller": {
+        "title": "Create Controller",
+        "description": "Enter the details for Controller #{sequence_number}",
+        "data": {
+          "name": "Controller Name",
+          "serial_port": "Serial Port",
+          "add_another": "Add another Controller?"
+        }
+      },
+      "cover": {
+        "title": "Create Cover",
+        "description": "Enter the details for Cover #{sequence_number}",
+        "data": {
+          "name": "Cover Name",
+          "controller": "Controller",
+          "address": "Device Address",
+          "node": "Node",
+          "drop": "Drop",
+          "has_image_area": "Image area?"
+        }
+      },
+      "image_area": {
+        "title": "Define Image Area",
+        "description": "Enter the details of the Image Area for {cover_name}",
+        "data": {
+          "image_border_below": "Height of Border below Image Area",
+          "image_height": "Image Height",
+          "image_aspect_ratio": "Image Aspect Ratio"
+        }
+      },
+      "finish_cover": {
+        "title": "Finish Cover",
+        "description": "Cover Created",
+        "data": {
+          "add_another": "Add another Cover?"
+        }
+      }
+    },
+    "error": {
+      "duplicate_name": "Duplicate name entered",
+      "image_area_too_tall": "Image area taller than drop",
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Choose Action",
+        "description": "Select the action that you would like to perform",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "add_ciw_manager": {
+        "title": "Add a CIW Manager",
+        "description": "Enter the details of Constant Image Width (CIW) Projector Screen #{sequence_number}",
+        "data": {
+          "screen_cover": "Screen",
+          "mask_cover": "Mask"
+        }
+      },
+      "del_ciw_manager": {
+        "title": "Delete CIW Manager(s)",
+        "description": "Select the CIW Manager(s) to be deleted",
+        "data": {
+          "select": "Select names to be removed"
+        }
+      },
+      "add_preset": {
+        "title": "Add a Preset",
+        "description": "Enter the details for Preset #{sequence_number}; the drops will be captured in the next step(s)",
+        "data": {
+          "name": "Name of Preset",
+          "select": "Select Cover(s) to include"
+        }
+      },
+      "define_drop": {
+        "title": "Define the drop for a Cover",
+        "description": "{preset_name}: Enter drop for {cover_name}; max drop is {max_drop}",
+        "data": {
+          "drop": "Drop"
+        }
+      },
+      "del_preset": {
+        "title": "Delete Preset(s)",
+        "description": "Select the Preset(s) to be deleted",
+        "data": {
+          "select": "Select names to be removed"
+        }
+      }
+    },
+    "error": {
+      "duplicate_name": "Duplicate name entered",
+      "no_covers_selected": "No Covers Selected",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "not_implemented": "Not implemented"
+    }
+  }
+}
