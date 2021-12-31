@@ -3,6 +3,7 @@
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/pp81381/nice",
+  "issue_tracker": "https://github.com/pp81381/nice/issues",
   "domain": "nice",
   "iot_class": "local_push",
   "name": "Nice",
