@@ -2,7 +2,7 @@
   "title": "Nice",
   "config": {
     "step": {
-      "user": {
+      "title": {
         "title": "Define Integration",
         "description": "Enter the details of this Integration",
         "data": {
@@ -59,7 +59,7 @@
   },
   "options": {
     "step": {
-      "init": {
+      "select_action": {
         "title": "Choose Action",
         "description": "Select the action that you would like to perform",
         "data": {
