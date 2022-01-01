@@ -542,12 +542,12 @@ class TestFinishCoverStep:
         assert result["step_id"] == "cover"
 
 
-class TestOptionsFlowInitWithMask:
+class TestOptionsFlowMenuWithMask:
     @pytest.fixture
     def config_entry_data(self):
         return TEST_CONFIG_WITH_MASK
 
-    async def test_options_init_mask_add_ciw(
+    async def test_menu_add_ciw_with_mask(
         self, hass: HomeAssistant, options_flow_id
     ) -> None:
         """Verify Add CIW menu item."""
@@ -558,7 +558,7 @@ class TestOptionsFlowInitWithMask:
         assert result["type"] == RESULT_TYPE_FORM
         assert result["step_id"] == "add_ciw_manager"
 
-    async def test_options_init_mask_no_del_ciw(
+    async def test_menu_del_ciw_with_mask(
         self, hass: HomeAssistant, options_flow_id
     ) -> None:
         """Verify no Del CIW menu item."""
@@ -567,7 +567,7 @@ class TestOptionsFlowInitWithMask:
                 options_flow_id, user_input={CONF_ACTION: ACTION_DEL_CIW}
             )
 
-    async def test_options_init_mask_add_preset(
+    async def test_menu_add_preset_with_mask(
         self, hass: HomeAssistant, options_flow_id
     ) -> None:
         """Verify Add Preset menu item."""
@@ -578,7 +578,7 @@ class TestOptionsFlowInitWithMask:
         assert result["type"] == RESULT_TYPE_FORM
         assert result["step_id"] == "add_preset"
 
-    async def test_options_init_mask_no_del_preset(
+    async def test_menu_mask_del_preset_with_mask(
         self, hass: HomeAssistant, options_flow_id
     ) -> None:
         """Verify no Del Preset menu item."""
@@ -588,12 +588,12 @@ class TestOptionsFlowInitWithMask:
             )
 
 
-class TestOptionsFlowInitWithoutMask:
+class TestOptionsFlowMenuWithoutMask:
     @pytest.fixture
     def config_entry_data(self):
         return TEST_CONFIG_NO_MASK
 
-    async def test_options_init_nomask_no_add_ciw(
+    async def test_menu_add_ciw_no_mask(
         self, hass: HomeAssistant, options_flow_id
     ) -> None:
         """Verify no Add CIW menu item."""
@@ -602,7 +602,7 @@ class TestOptionsFlowInitWithoutMask:
                 options_flow_id, user_input={CONF_ACTION: ACTION_ADD_CIW}
             )
 
-    async def test_options_init_nomask_no_del_ciw(
+    async def test_menu_del_ciw_no_mask(
         self, hass: HomeAssistant, options_flow_id
     ) -> None:
         """Verify no Del CIW menu item."""
@@ -611,7 +611,7 @@ class TestOptionsFlowInitWithoutMask:
                 options_flow_id, user_input={CONF_ACTION: ACTION_DEL_CIW}
             )
 
-    async def test_options_init_nomask_add_preset(
+    async def test_menu_add_preset_no_mask(
         self, hass: HomeAssistant, options_flow_id
     ) -> None:
         """Verify Add Preset menu item."""
@@ -622,7 +622,7 @@ class TestOptionsFlowInitWithoutMask:
         assert result["type"] == RESULT_TYPE_FORM
         assert result["step_id"] == "add_preset"
 
-    async def test_options_init_nomask_no_del_preset(
+    async def test_menu_del_preset_no_mask(
         self, hass: HomeAssistant, options_flow_id
     ) -> None:
         """Verify no Del Preset menu item."""
@@ -632,7 +632,7 @@ class TestOptionsFlowInitWithoutMask:
             )
 
 
-class TestOptionsFlowInitWithOptions:
+class TestOptionsFlowMenuWithOptions:
     @pytest.fixture
     def config_entry_data(self):
         return TEST_CONFIG_WITH_MASK
@@ -641,7 +641,7 @@ class TestOptionsFlowInitWithOptions:
     def config_entry_options(self):
         return TEST_OPTIONS
 
-    async def test_options_init_opt_add_ciw(
+    async def test_menu_add_ciw_with_existing(
         self, hass: HomeAssistant, options_flow_id
     ) -> None:
         """Verify Add CIW menu item."""
@@ -652,7 +652,7 @@ class TestOptionsFlowInitWithOptions:
         assert result["type"] == RESULT_TYPE_FORM
         assert result["step_id"] == "add_ciw_manager"
 
-    async def test_options_init_opt_del_ciw(
+    async def test_menu_del_ciw_with_existing(
         self, hass: HomeAssistant, options_flow_id
     ) -> None:
         """Verify Del CIW menu item."""
@@ -663,7 +663,7 @@ class TestOptionsFlowInitWithOptions:
         assert result["type"] == RESULT_TYPE_FORM
         assert result["step_id"] == "del_ciw_manager"
 
-    async def test_options_init_opt_add_preset(
+    async def test_menu_add_preset_with_existing(
         self, hass: HomeAssistant, options_flow_id
     ) -> None:
         """Verify Add Preset menu item."""
@@ -674,7 +674,7 @@ class TestOptionsFlowInitWithOptions:
         assert result["type"] == RESULT_TYPE_FORM
         assert result["step_id"] == "add_preset"
 
-    async def test_options_init_opt_del_preset(
+    async def test_menu_del_preset_with_existing(
         self, hass: HomeAssistant, options_flow_id
     ) -> None:
         """Verify Del Preset menu item."""
