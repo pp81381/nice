@@ -122,3 +122,24 @@ Select the Preset(s) to be deleted. Click on Submit to delete them.
 ## nice.apply_preset
 
 Takes the name of the Preset as the argument
+
+# Emulator
+
+If you would like to experiment with this integration then you can run an emulator of the Nice TT6 controller.
+
+Set it up as follows:
+
+```shell
+python -m venv nice_venv
+source nice_venv/bin/activate
+pip install nicett6_pp81381
+```
+
+Run it as follows:
+
+```shell
+source nice_venv/bin/activate
+python -m nicett6.emulator
+```
+
+Use it by configuring a Controller with a serial port like `socket://localhost:50200`
