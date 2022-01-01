@@ -293,6 +293,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage the options for the custom component."""
+        return await self.async_step_select_action()
+
+    async def async_step_select_action(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Select the desired action."""
 
         errors = {}
 
@@ -320,7 +326,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         data_schema = vol.Schema({vol.Required(CONF_ACTION): vol.In(actions)})
 
         return self.async_show_form(
-            step_id="init",
+            step_id="select_action",
             data_schema=data_schema,
             errors=errors,
         )
