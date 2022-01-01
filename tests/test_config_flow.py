@@ -226,12 +226,12 @@ async def config_flow_id(
     }
     with patch.object(
         custom_components.nice.config_flow.ConfigFlow,
-        "async_step_setup_test",
+        "async_step_user",
         async_step_setup_test,
     ):
         result = await hass.config_entries.flow.async_init(
             DOMAIN,
-            context={"source": "setup_test"},
+            context={"source": "user"},
             data=user_input,
         )
 
@@ -284,17 +284,27 @@ async def test_make_id():
     assert id == "12345678_1234_5678_1234_567812345678"
 
 
-class TestUserStep:
+async def test_user_step(hass):
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "user"},
+    )
+    assert result["errors"] == {}
+    assert result["type"] == RESULT_TYPE_FORM
+    assert result["step_id"] == "title"
+
+
+class TestTitleStep:
     @pytest.fixture
     def step_id(self):
-        return "user"
+        return "title"
 
-    async def test_user(
+    async def test_title(
         self,
         hass: HomeAssistant,
         config_flow_id,
     ) -> None:
-        """Test user step."""
+        """Test title step."""
         result = await hass.config_entries.flow.async_configure(
             config_flow_id, {"title": TEST_TITLE}
         )

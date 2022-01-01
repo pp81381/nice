@@ -98,6 +98,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
+        return await self.async_step_title()
+
+    async def async_step_title(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
 
         errors = {}
 
@@ -108,15 +113,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         data_schema = vol.Schema({vol.Required(CONF_TITLE, default="Nice TT6"): str})
 
         return self.async_show_form(
-            step_id="user",
+            step_id="title",
             errors=errors,
             data_schema=data_schema,
         )
-
-    async def async_step_setup_test(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        pass
 
     async def async_step_controller(
         self, user_input: dict[str, Any] | None = None
