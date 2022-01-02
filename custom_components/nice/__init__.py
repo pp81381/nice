@@ -41,7 +41,7 @@ from .const import (
     SERVICE_SET_ASPECT_RATIO,
 )
 
-PLATFORMS = ["cover", "number", "sensor"]
+PLATFORMS = ["cover", "sensor"]
 
 _LOGGER = logging.getLogger(__name__)
 

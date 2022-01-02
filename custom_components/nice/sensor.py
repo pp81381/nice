@@ -45,6 +45,12 @@ CIW_SENSORS = (
         AREA_SQUARE_METERS,
         lambda ciw_helper: ciw_helper.image_area,
     ),
+    NiceSensorDef(
+        "Aspect Ratio",
+        "mdi:aspect-ratio",
+        None,
+        lambda ciw_helper: ciw_helper.aspect_ratio,
+    ),
 )
 
 COVER_SENSORS = (
@@ -102,7 +108,7 @@ class NiceCIWSensor(SensorEntity):
         helper: CIWHelper,
         name: str,
         icon: str,
-        unit_of_measurement: str,
+        unit_of_measurement: Union[str, None],
         getter: Callable[[CIWHelper], StateType],
     ) -> None:
         """A Sensor for a CIWManager property."""
