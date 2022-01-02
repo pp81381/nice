@@ -9,3 +9,25 @@ apply_preset:
       example: Preset 1
       selector:
         text:
+
+set_aspect_ratio:
+  name: Set Aspect Ratio
+  description: Set the screen and mask to the specified aspect ratio.
+  fields:
+    name:
+      name: Name
+      description: The name of the CIW Manager.
+      required: true
+      example: CIW Manager 1
+      selector:
+        text:
+    aspect_ratio:
+      name: Aspect Ratio
+      description: The target aspect ratio.
+      required: true
+      example: 1.7778
+      selector:
+        number:
+          min: 0.4
+          max: 3.5
+          mode: box

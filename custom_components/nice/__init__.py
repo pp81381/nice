@@ -11,7 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant
 from nicett6.ciw_helper import ImageDef
-from nicett6.ciw_manager import CIWManager
+from nicett6.ciw_manager import CIWAspectRatioMode, CIWManager
 from nicett6.cover import Cover, TT6Cover
 from nicett6.cover_manager import CoverManager
 from nicett6.ttbus_device import TTBusDeviceAddress
@@ -19,6 +19,7 @@ from nicett6.utils import AsyncObservable, AsyncObserver
 
 from .const import (
     CONF_ADDRESS,
+    CONF_ASPECT_RATIO,
     CONF_CIW_MANAGERS,
     CONF_CONTROLLER,
     CONF_CONTROLLERS,
@@ -37,6 +38,7 @@ from .const import (
     CONF_SERIAL_PORT,
     DOMAIN,
     SERVICE_APPLY_PRESET,
+    SERVICE_SET_ASPECT_RATIO,
 )
 
 PLATFORMS = ["cover", "number", "sensor"]
@@ -181,15 +183,49 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     )
 
     if CONF_PRESETS in entry.options:
-        presets = [config[CONF_NAME] for config in entry.options[CONF_PRESETS].values()]
+        names = [config[CONF_NAME] for config in entry.options[CONF_PRESETS].values()]
         SERVICE_APPLY_PRESET_SCHEMA = vol.Schema(
-            {vol.Required(CONF_NAME): vol.In(presets)}
+            {vol.Required(CONF_NAME): vol.In(names)}
         )
         hass.services.async_register(
             DOMAIN,
             SERVICE_APPLY_PRESET,
             apply_preset,
             schema=SERVICE_APPLY_PRESET_SCHEMA,
+        )
+
+    async def set_aspect_ratio(call) -> None:
+        """Service call to set the aspect ratio of a CIWManager."""
+        for ciw in nd.ciw_mgrs.values():
+            if ciw[CONF_NAME] == call.data.get(CONF_NAME):
+                mgr: CIWManager = ciw["ciw_manager"]
+                mode: CIWAspectRatioMode = CIWAspectRatioMode.FIXED_MIDDLE
+                baseline_drop = mgr.default_baseline_drop(mode)
+                await mgr.send_set_aspect_ratio(
+                    call.data.get(CONF_ASPECT_RATIO),
+                    mode,
+                    baseline_drop,
+                )
+
+    if CONF_CIW_MANAGERS in entry.options:
+        names = [
+            config[CONF_NAME] for config in entry.options[CONF_CIW_MANAGERS].values()
+        ]
+        SERVICE_SET_ASPECT_RATIO_SCHEMA = vol.Schema(
+            {
+                vol.Required(CONF_NAME): vol.In(names),
+                vol.Required(CONF_ASPECT_RATIO): vol.All(
+                    vol.Coerce(float),
+                    vol.Range(min=0.4, max=3.5),
+                    msg="invalid aspect ratio",
+                ),
+            }
+        )
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_SET_ASPECT_RATIO,
+            set_aspect_ratio,
+            schema=SERVICE_SET_ASPECT_RATIO_SCHEMA,
         )
 
     return True
@@ -200,6 +236,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug("nice async_unload_entry")
     if hass.services.has_service(DOMAIN, SERVICE_APPLY_PRESET):
         hass.services.async_remove(DOMAIN, SERVICE_APPLY_PRESET)
+    if hass.services.has_service(DOMAIN, SERVICE_SET_ASPECT_RATIO):
+        hass.services.async_remove(DOMAIN, SERVICE_SET_ASPECT_RATIO)
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:

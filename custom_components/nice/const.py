@@ -23,9 +23,11 @@ CONF_ACTION = "action"
 CONF_SELECT = "select"
 CONF_COVER = "cover"
 CONF_DROPS = "drops"
+CONF_ASPECT_RATIO = "aspect_ratio"
 
 
 SERVICE_APPLY_PRESET = "apply_preset"
+SERVICE_SET_ASPECT_RATIO = "set_aspect_ratio"
 
 
 ACTION_ADD_CIW = "Add CIW Manager"
