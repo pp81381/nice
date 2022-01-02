@@ -1,7 +1,6 @@
 from homeassistant.components.number import NumberEntity
 from homeassistant.util import slugify
-from nicett6.ciw_helper import CIWAspectRatioMode
-from nicett6.ciw_manager import CIWManager
+from nicett6.ciw_manager import CIWManager, CIWAspectRatioMode
 
 from . import EntityUpdater, NiceData
 from .const import DOMAIN
@@ -64,11 +63,13 @@ class NiceAspectRatio(NumberEntity):
     @property
     def value(self) -> float:
         """Return the aspect ratio."""
-        return self._ciw.helper.aspect_ratio
+        return self._ciw.get_helper().aspect_ratio
 
     async def async_set_value(self, value: float) -> None:
         """Set the aspect ratio."""
-        await self._ciw.send_set_aspect_ratio(value, CIWAspectRatioMode.FIXED_TOP)
+        mode: CIWAspectRatioMode = CIWAspectRatioMode.FIXED_TOP
+        baseline_drop = self._ciw.default_baseline_drop(mode)
+        await self._ciw.send_set_aspect_ratio(value, mode, baseline_drop)
 
     async def async_added_to_hass(self):
         """Register device notification."""

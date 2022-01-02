@@ -7,6 +7,6 @@
   "domain": "nice",
   "iot_class": "local_push",
   "name": "Nice",
-  "requirements": ["nicett6-pp81381==0.8"],
+  "requirements": ["nicett6-pp81381==0.10"],
   "version": "1.0.0"
 }

@@ -6,7 +6,6 @@ from homeassistant.const import AREA_SQUARE_METERS, LENGTH_METERS
 from homeassistant.helpers.typing import StateType
 from homeassistant.util import slugify
 from nicett6.ciw_helper import CIWHelper
-from nicett6.ciw_manager import CIWManager
 from nicett6.cover import Cover
 
 from . import EntityUpdater, NiceData
@@ -67,7 +66,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             [
                 NiceCIWSensor(
                     slugify(f"{id}_{sd.name}"),
-                    item["ciw_manager"],
+                    item["ciw_manager"].get_helper(),
                     f"{item['name']} {sd.name}",
                     sd.icon,
                     sd.unit_of_measurement,
@@ -100,7 +99,7 @@ class NiceCIWSensor(SensorEntity):
     def __init__(
         self,
         unique_id,
-        ciw: CIWManager,
+        helper: CIWHelper,
         name: str,
         icon: str,
         unit_of_measurement: str,
@@ -108,7 +107,7 @@ class NiceCIWSensor(SensorEntity):
     ) -> None:
         """A Sensor for a CIWManager property."""
         self._unique_id = unique_id
-        self._ciw: CIWManager = ciw
+        self._helper: CIWHelper = helper
         self._name = name
         self._icon = icon
         self._unit_of_measurement = unit_of_measurement
@@ -133,7 +132,7 @@ class NiceCIWSensor(SensorEntity):
     @property
     def state(self) -> StateType:
         """Return the state of the entity."""
-        return self._getter(self._ciw.helper)
+        return self._getter(self._helper)
 
     @property
     def unit_of_measurement(self) -> Union[str, None]:
@@ -147,12 +146,12 @@ class NiceCIWSensor(SensorEntity):
 
     async def async_added_to_hass(self):
         """Register device notification."""
-        self._ciw.screen_tt6_cover.cover.attach(self._updater)
-        self._ciw.mask_tt6_cover.cover.attach(self._updater)
+        self._helper.screen.attach(self._updater)
+        self._helper.mask.attach(self._updater)
 
     async def async_will_remove_from_hass(self):
-        self._ciw.mask_tt6_cover.cover.detach(self._updater)
-        self._ciw.screen_tt6_cover.cover.detach(self._updater)
+        self._helper.screen.detach(self._updater)
+        self._helper.mask.detach(self._updater)
 
 
 class NiceCoverSensor(SensorEntity):
