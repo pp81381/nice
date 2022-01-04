@@ -120,6 +120,8 @@ TEST_CIW_MANAGER_1 = {
     "name": "CIW Manager 1",
     "screen_cover": COVER_1_ID,
     "mask_cover": COVER_2_ID,
+    "aspect_ratio_mode": "FIXED_MIDDLE",
+    "baseline_drop": None,
 }
 
 TEST_PRESET_1 = {
@@ -773,6 +775,7 @@ async def test_add_ciw(
                 "name": "CIW Manager 1",
                 "screen_cover": COVER_1_ID,
                 "mask_cover": COVER_2_ID,
+                "aspect_ratio_mode": "FIXED_MIDDLE",
             },
         )
 

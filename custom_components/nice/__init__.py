@@ -20,6 +20,8 @@ from nicett6.utils import AsyncObservable, AsyncObserver
 from .const import (
     CONF_ADDRESS,
     CONF_ASPECT_RATIO,
+    CONF_ASPECT_RATIO_MODE,
+    CONF_BASELINE_DROP,
     CONF_CIW_MANAGERS,
     CONF_CONTROLLER,
     CONF_CONTROLLERS,
@@ -40,6 +42,12 @@ from .const import (
     SERVICE_APPLY_PRESET,
     SERVICE_SET_ASPECT_RATIO,
 )
+
+CIW_ASPECT_RATIO_MODE_MAP = {
+    "FIXED_TOP": CIWAspectRatioMode.FIXED_TOP,
+    "FIXED_MIDDLE": CIWAspectRatioMode.FIXED_MIDDLE,
+    "FIXED_BOTTOM": CIWAspectRatioMode.FIXED_BOTTOM,
+}
 
 PLATFORMS = ["cover", "sensor"]
 
@@ -88,6 +96,18 @@ class NiceControllerWrapper:
         await self._close()
 
 
+def image_def_from_config(config):
+    image_config = config[CONF_IMAGE_AREA]
+    if image_config is not None:
+        return ImageDef(
+            image_config[CONF_IMAGE_BORDER_BELOW],
+            image_config[CONF_IMAGE_HEIGHT],
+            image_config[CONF_IMAGE_ASPECT_RATIO],
+        )
+    else:
+        return None
+
+
 class NiceData:
     def __init__(self):
         self.controllers: dict[str, CoverManager] = {}
@@ -108,14 +128,8 @@ class NiceData:
         self.tt6_covers[id] = {
             "tt6_cover": tt6_cover,
             "controller_id": config[CONF_CONTROLLER],
+            "image_def": image_def_from_config(config),
         }
-        image_config = config[CONF_IMAGE_AREA]
-        if image_config is not None:
-            self.tt6_covers[id]["image_def"] = ImageDef(
-                image_config[CONF_IMAGE_BORDER_BELOW],
-                image_config[CONF_IMAGE_HEIGHT],
-                image_config[CONF_IMAGE_ASPECT_RATIO],
-            )
 
     def add_ciw_manager(self, id, config):
         self.ciw_mgrs[id] = {
@@ -125,6 +139,8 @@ class NiceData:
                 self.tt6_covers[config[CONF_MASK_COVER]]["tt6_cover"],
                 self.tt6_covers[config[CONF_SCREEN_COVER]]["image_def"],
             ),
+            "mode": CIW_ASPECT_RATIO_MODE_MAP[config[CONF_ASPECT_RATIO_MODE]],
+            "baseline_drop": config[CONF_BASELINE_DROP],
         }
 
     async def close(self):
@@ -199,8 +215,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         for ciw in nd.ciw_mgrs.values():
             if ciw[CONF_NAME] == call.data.get(CONF_NAME):
                 mgr: CIWManager = ciw["ciw_manager"]
-                mode: CIWAspectRatioMode = CIWAspectRatioMode.FIXED_MIDDLE
-                baseline_drop = mgr.default_baseline_drop(mode)
+                mode: CIWAspectRatioMode = ciw["mode"]
+                baseline_drop = ciw["baseline_drop"]
+                if baseline_drop is None:
+                    baseline_drop = mgr.default_baseline_drop(mode)
                 await mgr.send_set_aspect_ratio(
                     call.data.get(CONF_ASPECT_RATIO),
                     mode,

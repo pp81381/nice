@@ -71,7 +71,9 @@
         "description": "Enter the details of Constant Image Width (CIW) Projector Screen #{sequence_number}",
         "data": {
           "screen_cover": "Screen",
-          "mask_cover": "Mask"
+          "mask_cover": "Mask",
+          "aspect_ratio_mode": "Aspect Ratio Mode",
+          "baseline_drop": "Baseline Drop"
         }
       },
       "del_ciw_manager": {
@@ -107,6 +109,7 @@
     "error": {
       "duplicate_name": "Duplicate name entered",
       "no_covers_selected": "No Covers Selected",
+      "invalid_baseline_drop": "Invalid Baseline Drop",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {
