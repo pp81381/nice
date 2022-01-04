@@ -189,7 +189,7 @@ def config_flow_state_override(config_data):
 
 
 @pytest.fixture
-async def config_flow(hass: HomeAssistant, config_flow_state_override):
+async def init_config_flow(hass: HomeAssistant, config_flow_state_override):
     step_id = config_flow_state_override["step_id"]
 
     async def async_step_setup_test(
@@ -222,18 +222,18 @@ async def config_flow(hass: HomeAssistant, config_flow_state_override):
 
 
 @pytest.fixture
-async def config_flow_id(config_flow):
-    return config_flow["flow_id"]
+async def config_flow_id(init_config_flow):
+    return init_config_flow["flow_id"]
 
 
 @pytest.fixture
-async def options_flow(hass: HomeAssistant, config_entry):
+async def init_options_flow(hass: HomeAssistant, config_entry):
     return await hass.config_entries.options.async_init(config_entry.entry_id)
 
 
 @pytest.fixture
-async def options_flow_id(options_flow):
-    return options_flow["flow_id"]
+async def options_flow_id(init_options_flow):
+    return init_options_flow["flow_id"]
 
 
 @pytest.fixture()
