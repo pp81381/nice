@@ -34,6 +34,13 @@ from custom_components.nice.const import (
 
 TEST_TITLE = "Nice TT6 Test"
 
+CONTROLLER_1_ID = "controller_1_id"
+COVER_1_ID = "cover_1_id"
+COVER_2_ID = "cover_2_id"
+CIW_1_ID = "ciw_1_id"
+PRESET_1_ID = "preset_1_id"
+PRESET_2_ID = "preset_2_id"
+
 CONTROLLER_INPUT = {
     "name": "Controller 1 Test",
     "serial_port": "socket://localhost:50200",
@@ -42,7 +49,7 @@ CONTROLLER_INPUT = {
 
 SCREEN_COVER_INPUT = {
     "name": "Screen",
-    "controller": "controller_1_id",
+    "controller": CONTROLLER_1_ID,
     "address": 2,
     "node": 4,
     "drop": 1.8,
@@ -52,7 +59,7 @@ SCREEN_COVER_INPUT = {
 
 MASK_COVER_INPUT = {
     "name": "Mask",
-    "controller": "controller_1_id",
+    "controller": CONTROLLER_1_ID,
     "address": 3,
     "node": 4,
     "drop": 0.5,
@@ -79,7 +86,7 @@ TEST_CONTROLLER_1 = {
 
 TEST_PARTIAL_SCREEN = {
     "name": "Screen",
-    "controller": "controller_1_id",
+    "controller": CONTROLLER_1_ID,
     "address": 2,
     "node": 4,
     "drop": 1.8,
@@ -88,7 +95,7 @@ TEST_PARTIAL_SCREEN = {
 
 TEST_SCREEN = {
     "name": "Screen",
-    "controller": "controller_1_id",
+    "controller": CONTROLLER_1_ID,
     "address": 2,
     "node": 4,
     "drop": 1.8,
@@ -101,7 +108,7 @@ TEST_SCREEN = {
 
 TEST_MASK = {
     "name": "Mask",
-    "controller": "controller_1_id",
+    "controller": CONTROLLER_1_ID,
     "address": 3,
     "node": 4,
     "drop": 0.5,
@@ -111,23 +118,23 @@ TEST_MASK = {
 
 TEST_CIW_MANAGER_1 = {
     "name": "CIW Manager 1",
-    "screen_cover": "cover_1_id",
-    "mask_cover": "cover_2_id",
+    "screen_cover": COVER_1_ID,
+    "mask_cover": COVER_2_ID,
 }
 
 TEST_PRESET_1 = {
     "name": "Preset 1",
     "drops": [
-        {"cover": "cover_1_id", "drop": 1.77},
-        {"cover": "cover_2_id", "drop": 0.5},
+        {"cover": COVER_1_ID, "drop": 1.77},
+        {"cover": COVER_2_ID, "drop": 0.5},
     ],
 }
 
 TEST_PRESET_2 = {
     "name": "Preset 2",
     "drops": [
-        {"cover": "cover_1_id", "drop": 0.0},
-        {"cover": "cover_2_id", "drop": 0.0},
+        {"cover": COVER_1_ID, "drop": 0.0},
+        {"cover": COVER_2_ID, "drop": 0.0},
     ],
 }
 
@@ -288,38 +295,38 @@ def set_title(config_flow_state_override):
 
 @pytest.fixture
 def add_controller_1(config_data):
-    config_data["controllers"]["controller_1_id"] = TEST_CONTROLLER_1
+    config_data["controllers"][CONTROLLER_1_ID] = TEST_CONTROLLER_1
 
 
 @pytest.fixture
 def add_partial_screen(config_data, config_flow_state_override):
-    config_data["covers"]["cover_1_id"] = TEST_PARTIAL_SCREEN
-    config_flow_state_override["tmp"] = "cover_1_id"
+    config_data["covers"][COVER_1_ID] = TEST_PARTIAL_SCREEN
+    config_flow_state_override["tmp"] = COVER_1_ID
 
 
 @pytest.fixture
 def add_screen(config_data):
-    config_data["covers"]["cover_1_id"] = TEST_SCREEN
+    config_data["covers"][COVER_1_ID] = TEST_SCREEN
 
 
 @pytest.fixture
 def add_mask(config_data):
-    config_data["covers"]["cover_2_id"] = TEST_MASK
+    config_data["covers"][COVER_2_ID] = TEST_MASK
 
 
 @pytest.fixture
 def add_ciw_1(options_data):
-    options_data["ciw_managers"]["ciw_1_id"] = TEST_CIW_MANAGER_1
+    options_data["ciw_managers"][CIW_1_ID] = TEST_CIW_MANAGER_1
 
 
 @pytest.fixture
 def add_preset_1(options_data):
-    options_data["presets"]["preset_1_id"] = TEST_PRESET_1
+    options_data["presets"][PRESET_1_ID] = TEST_PRESET_1
 
 
 @pytest.fixture
 def add_preset_2(options_data):
-    options_data["presets"]["preset_2_id"] = TEST_PRESET_2
+    options_data["presets"][PRESET_2_ID] = TEST_PRESET_2
 
 
 async def test_make_id():
@@ -371,7 +378,7 @@ async def test_controller_valid_port(
         new=dummy_open_connection,
     ), patch(
         "custom_components.nice.config_flow.make_id",
-        return_value="controller_1_id",
+        return_value=CONTROLLER_1_ID,
     ):
         result = await hass.config_entries.flow.async_configure(
             config_flow_id,
@@ -385,7 +392,7 @@ async def test_controller_valid_port(
 
     flow = get_flow(hass, config_flow_id)
     assert flow.data == {
-        "controllers": {"controller_1_id": TEST_CONTROLLER_1},
+        "controllers": {CONTROLLER_1_ID: TEST_CONTROLLER_1},
         "covers": {},
     }
 
@@ -401,7 +408,7 @@ async def test_controller_invalid_port(
         side_effect=ValueError,
     ), patch(
         "custom_components.nice.config_flow.make_id",
-        return_value="controller_1_id",
+        return_value=CONTROLLER_1_ID,
     ):
         result = await hass.config_entries.flow.async_configure(
             config_flow_id,
@@ -423,7 +430,7 @@ async def test_cover_with_image_area(
     """Test a cover with an image area."""
     with patch(
         "custom_components.nice.config_flow.make_id",
-        return_value="cover_1_id",
+        return_value=COVER_1_ID,
     ):
         result = await hass.config_entries.flow.async_configure(
             config_flow_id,
@@ -436,8 +443,8 @@ async def test_cover_with_image_area(
     assert result["step_id"] == "image_area"
 
     flow = get_flow(hass, config_flow_id)
-    assert flow.tmp == "cover_1_id"
-    assert flow.data["covers"]["cover_1_id"] == TEST_PARTIAL_SCREEN
+    assert flow.tmp == COVER_1_ID
+    assert flow.data["covers"][COVER_1_ID] == TEST_PARTIAL_SCREEN
 
 
 async def test_cover_without_image_area(
@@ -449,7 +456,7 @@ async def test_cover_without_image_area(
     """Test a cover without an image area."""
     with patch(
         "custom_components.nice.config_flow.make_id",
-        return_value="cover_2_id",
+        return_value=COVER_2_ID,
     ):
         result = await hass.config_entries.flow.async_configure(
             config_flow_id,
@@ -462,7 +469,7 @@ async def test_cover_without_image_area(
     assert result["step_id"] == "finish_cover"
 
     flow = get_flow(hass, config_flow_id)
-    assert flow.data["covers"]["cover_2_id"] == TEST_MASK
+    assert flow.data["covers"][COVER_2_ID] == TEST_MASK
 
 
 async def test_image_area(
@@ -525,8 +532,8 @@ async def test_finish_cover(
     assert result["type"] == RESULT_TYPE_CREATE_ENTRY
     assert result["title"] == TEST_TITLE
     assert result["data"] == {
-        "controllers": {"controller_1_id": TEST_CONTROLLER_1},
-        "covers": {"cover_1_id": TEST_SCREEN},
+        "controllers": {CONTROLLER_1_ID: TEST_CONTROLLER_1},
+        "covers": {COVER_1_ID: TEST_SCREEN},
     }
     assert len(mock_setup_entry.mock_calls) == 1
 
@@ -758,14 +765,14 @@ async def test_add_ciw(
 
     with patch(
         "custom_components.nice.config_flow.make_id",
-        return_value="ciw_1_id",
+        return_value=CIW_1_ID,
     ):
         result = await hass.config_entries.options.async_configure(
             options_flow_id,
             user_input={
                 "name": "CIW Manager 1",
-                "screen_cover": "cover_1_id",
-                "mask_cover": "cover_2_id",
+                "screen_cover": COVER_1_ID,
+                "mask_cover": COVER_2_ID,
             },
         )
 
@@ -773,7 +780,7 @@ async def test_add_ciw(
     assert result["title"] == ""
     assert result["result"] is True
     assert result["data"] == {
-        "ciw_managers": {"ciw_1_id": TEST_CIW_MANAGER_1},
+        "ciw_managers": {CIW_1_ID: TEST_CIW_MANAGER_1},
         "presets": {},
     }
 
@@ -795,13 +802,13 @@ async def test_add_preset(
 
     with patch(
         "custom_components.nice.config_flow.make_id",
-        return_value="preset_1_id",
+        return_value=PRESET_1_ID,
     ):
         result = await hass.config_entries.options.async_configure(
             options_flow_id,
             user_input={
                 "name": "Preset 1",
-                "select": ["cover_1_id", "cover_2_id"],
+                "select": [COVER_1_ID, COVER_2_ID],
             },
         )
 
@@ -828,7 +835,7 @@ async def test_add_preset(
     assert result["result"] is True
     assert result["data"] == {
         "ciw_managers": {},
-        "presets": {"preset_1_id": TEST_PRESET_1},
+        "presets": {PRESET_1_ID: TEST_PRESET_1},
     }
 
 
@@ -849,13 +856,13 @@ async def test_add_preset_invalid_drop(
 
     with patch(
         "custom_components.nice.config_flow.make_id",
-        return_value="preset_1_id",
+        return_value=PRESET_1_ID,
     ):
         result = await hass.config_entries.options.async_configure(
             options_flow_id,
             user_input={
                 "name": "Preset 1",
-                "select": ["cover_1_id", "cover_2_id"],
+                "select": [COVER_1_ID, COVER_2_ID],
             },
         )
 
@@ -915,7 +922,7 @@ async def test_del_ciw(
 ) -> None:
     """Test Del CIW action."""
 
-    id = "ciw_1_id"
+    id = CIW_1_ID
 
     num_entities = await count_entities(hass, config_entry.entry_id, id)
     assert num_entities > 0
@@ -960,7 +967,7 @@ async def test_del_preset(
 
     result = await hass.config_entries.options.async_configure(
         options_flow_id,
-        user_input={"select": ["preset_1_id", "preset_2_id"]},
+        user_input={"select": [PRESET_1_ID, PRESET_2_ID]},
     )
 
     assert result["type"] == RESULT_TYPE_CREATE_ENTRY
