@@ -70,6 +70,7 @@
         "title": "Add a CIW Manager",
         "description": "Enter the details of Constant Image Width (CIW) Projector Screen #{sequence_number}",
         "data": {
+          "name": "Name of CIW Manager",
           "screen_cover": "Screen",
           "mask_cover": "Mask",
           "aspect_ratio_mode": "Aspect Ratio Mode",
