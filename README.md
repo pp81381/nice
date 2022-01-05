@@ -17,7 +17,7 @@ The Integration allows for the control of multiple Covers. There can be one or m
 
 ## Presets
 
-The Integration offers a service called [nice.apply_preset](#nice.apply_preset) which will move any number of Covers to preset positions.
+The Integration offers a service called [nice.apply_preset](#niceapply_preset) which will move any number of Covers to preset positions.
 
 ## Projector Screen Control
 
@@ -31,7 +31,7 @@ A Cover can optionally have an Image Area defined to represent the screen. An op
 - Image Area in square metres
 - Aspect Ratio
 
-The Integration offers a service called [nice.set_aspect_ratio](#nice.set_aspect_ratio) which will set the Covers managed by a CIW Manager to a specific Aspect Ratio.
+The Integration offers a service called [nice.set_aspect_ratio](#niceset_aspect_ratio) which will set the Covers managed by a CIW Manager to a specific Aspect Ratio.
 
 # Initial Configuration
 
