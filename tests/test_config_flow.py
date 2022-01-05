@@ -380,65 +380,65 @@ def options_step_del_preset(options_flow_state_override):
 
 
 @pytest.fixture
-def set_title(config_flow_state_override):
+def config_set_title(config_flow_state_override):
     config_flow_state_override["title"] = TEST_TITLE
 
 
 @pytest.fixture
-def add_controller_1(config_data):
+def config_add_controller_1(config_data):
     config_data["controllers"][CONTROLLER_1_ID] = TEST_CONTROLLER_1
 
 
 @pytest.fixture
-def add_partial_screen(config_data, config_flow_state_override):
+def config_add_partial_screen(config_data, config_flow_state_override):
     config_data["covers"][COVER_1_ID] = TEST_PARTIAL_SCREEN
     config_flow_state_override["tmp"] = COVER_1_ID
 
 
 @pytest.fixture
-def add_screen(config_data):
+def config_add_screen(config_data):
     config_data["covers"][COVER_1_ID] = TEST_SCREEN
 
 
 @pytest.fixture
-def add_mask(config_data):
+def config_add_mask(config_data):
     config_data["covers"][COVER_2_ID] = TEST_MASK
 
 
 @pytest.fixture
-def add_ciw_1(options_data):
+def options_add_ciw_1(options_data):
     options_data["ciw_managers"][CIW_1_ID] = TEST_CIW_MANAGER_1
 
 
 @pytest.fixture
-def add_preset_1(options_data):
+def options_add_preset_1(options_data):
     options_data["presets"][PRESET_1_ID] = TEST_PRESET_1
 
 
 @pytest.fixture
-def add_partial_preset_1_no_drops(options_data, options_flow_state_override):
+def options_add_partial_preset_1_no_drops(options_data, options_flow_state_override):
     options_data["presets"][PRESET_1_ID] = TEST_PARTIAL_PRESET_1_NO_DROPS
     options_flow_state_override["tmp_preset_id"] = PRESET_1_ID
 
 
 @pytest.fixture
-def add_partial_preset_1_one_drop(options_data, options_flow_state_override):
+def options_add_partial_preset_1_one_drop(options_data, options_flow_state_override):
     options_data["presets"][PRESET_1_ID] = TEST_PARTIAL_PRESET_1_ONE_DROP
     options_flow_state_override["tmp_preset_id"] = PRESET_1_ID
 
 
 @pytest.fixture
-def add_preset_2(options_data):
+def options_add_preset_2(options_data):
     options_data["presets"][PRESET_2_ID] = TEST_PRESET_2
 
 
 @pytest.fixture
-def add_drop_for_screen(options_flow_state_override):
+def options_add_drop_for_screen(options_flow_state_override):
     options_flow_state_override["tmp_drops_to_define"].append(COVER_1_ID)
 
 
 @pytest.fixture
-def add_drop_for_mask(options_flow_state_override):
+def options_add_drop_for_mask(options_flow_state_override):
     options_flow_state_override["tmp_drops_to_define"].append(COVER_2_ID)
 
 
@@ -537,7 +537,7 @@ async def test_controller_invalid_port(
 async def test_cover_with_image_area(
     hass: HomeAssistant,
     config_step_cover,
-    add_controller_1,
+    config_add_controller_1,
     config_flow_id,
 ) -> None:
     """Test a cover with an image area."""
@@ -563,7 +563,7 @@ async def test_cover_with_image_area(
 async def test_cover_without_image_area(
     hass: HomeAssistant,
     config_step_cover,
-    add_controller_1,
+    config_add_controller_1,
     config_flow_id,
 ) -> None:
     """Test a cover without an image area."""
@@ -588,8 +588,8 @@ async def test_cover_without_image_area(
 async def test_image_area(
     hass: HomeAssistant,
     config_step_image_area,
-    add_controller_1,
-    add_partial_screen,
+    config_add_controller_1,
+    config_add_partial_screen,
     config_flow_id,
 ) -> None:
     """Test an image area."""
@@ -607,8 +607,8 @@ async def test_image_area(
 async def test_invalid_image_area(
     hass: HomeAssistant,
     config_step_image_area,
-    add_controller_1,
-    add_partial_screen,
+    config_add_controller_1,
+    config_add_partial_screen,
     config_flow_id,
 ) -> None:
     """Test an invalid image area."""
@@ -626,9 +626,9 @@ async def test_invalid_image_area(
 async def test_finish_cover(
     hass: HomeAssistant,
     config_step_finish_cover,
-    set_title,
-    add_controller_1,
-    add_screen,
+    config_set_title,
+    config_add_controller_1,
+    config_add_screen,
     config_flow_id,
 ) -> None:
     """Test finishing a cover."""
@@ -654,9 +654,9 @@ async def test_finish_cover(
 async def test_add_another_cover(
     hass: HomeAssistant,
     config_step_finish_cover,
-    set_title,
-    add_controller_1,
-    add_screen,
+    config_set_title,
+    config_add_controller_1,
+    config_add_screen,
     config_flow_id,
 ) -> None:
     """Test add another cover."""
@@ -673,9 +673,9 @@ async def test_add_another_cover(
 
 async def test_options_init_step(
     hass,
-    add_controller_1,
-    add_screen,
-    add_mask,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
     config_entry,
 ):
     result = await hass.config_entries.options.async_init(config_entry.entry_id)
@@ -695,9 +695,9 @@ async def test_options_init_step(
 async def test_menu_add_ciw_with_mask(
     hass: HomeAssistant,
     options_step_select_action,
-    add_controller_1,
-    add_screen,
-    add_mask,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
     options_flow_id,
 ) -> None:
     """Verify Add CIW menu item."""
@@ -712,8 +712,8 @@ async def test_menu_add_ciw_with_mask(
 async def test_menu_add_ciw_no_mask(
     hass: HomeAssistant,
     options_step_select_action,
-    add_controller_1,
-    add_screen,
+    config_add_controller_1,
+    config_add_screen,
     options_flow_id,
 ) -> None:
     """Verify no Add CIW menu item."""
@@ -726,12 +726,12 @@ async def test_menu_add_ciw_no_mask(
 async def test_menu_add_ciw_with_existing(
     hass: HomeAssistant,
     options_step_select_action,
-    add_controller_1,
-    add_screen,
-    add_mask,
-    add_ciw_1,
-    add_preset_1,
-    add_preset_2,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
+    options_add_ciw_1,
+    options_add_preset_1,
+    options_add_preset_2,
     options_flow_id,
 ) -> None:
     """Verify Add CIW menu item."""
@@ -746,9 +746,9 @@ async def test_menu_add_ciw_with_existing(
 async def test_menu_del_ciw_with_mask(
     hass: HomeAssistant,
     options_step_select_action,
-    add_controller_1,
-    add_screen,
-    add_mask,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
     options_flow_id,
 ) -> None:
     """Verify no Del CIW menu item."""
@@ -761,8 +761,8 @@ async def test_menu_del_ciw_with_mask(
 async def test_menu_del_ciw_no_mask(
     hass: HomeAssistant,
     options_step_select_action,
-    add_controller_1,
-    add_screen,
+    config_add_controller_1,
+    config_add_screen,
     options_flow_id,
 ) -> None:
     """Verify no Del CIW menu item."""
@@ -775,12 +775,12 @@ async def test_menu_del_ciw_no_mask(
 async def test_menu_del_ciw_with_existing(
     hass: HomeAssistant,
     options_step_select_action,
-    add_controller_1,
-    add_screen,
-    add_mask,
-    add_ciw_1,
-    add_preset_1,
-    add_preset_2,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
+    options_add_ciw_1,
+    options_add_preset_1,
+    options_add_preset_2,
     options_flow_id,
 ) -> None:
     """Verify Del CIW menu item."""
@@ -795,9 +795,9 @@ async def test_menu_del_ciw_with_existing(
 async def test_menu_add_preset_with_mask(
     hass: HomeAssistant,
     options_step_select_action,
-    add_controller_1,
-    add_screen,
-    add_mask,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
     options_flow_id,
 ) -> None:
     """Verify Add Preset menu item."""
@@ -812,8 +812,8 @@ async def test_menu_add_preset_with_mask(
 async def test_menu_add_preset_no_mask(
     hass: HomeAssistant,
     options_step_select_action,
-    add_controller_1,
-    add_screen,
+    config_add_controller_1,
+    config_add_screen,
     options_flow_id,
 ) -> None:
     """Verify Add Preset menu item."""
@@ -828,12 +828,12 @@ async def test_menu_add_preset_no_mask(
 async def test_menu_add_preset_with_existing(
     hass: HomeAssistant,
     options_step_select_action,
-    add_controller_1,
-    add_screen,
-    add_mask,
-    add_ciw_1,
-    add_preset_1,
-    add_preset_2,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
+    options_add_ciw_1,
+    options_add_preset_1,
+    options_add_preset_2,
     options_flow_id,
 ) -> None:
     """Verify Add Preset menu item."""
@@ -848,9 +848,9 @@ async def test_menu_add_preset_with_existing(
 async def test_menu_mask_del_preset_with_mask(
     hass: HomeAssistant,
     options_step_select_action,
-    add_controller_1,
-    add_screen,
-    add_mask,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
     options_flow_id,
 ) -> None:
     """Verify no Del Preset menu item."""
@@ -863,8 +863,8 @@ async def test_menu_mask_del_preset_with_mask(
 async def test_menu_del_preset_no_mask(
     hass: HomeAssistant,
     options_step_select_action,
-    add_controller_1,
-    add_screen,
+    config_add_controller_1,
+    config_add_screen,
     options_flow_id,
 ) -> None:
     """Verify no Del Preset menu item."""
@@ -877,12 +877,12 @@ async def test_menu_del_preset_no_mask(
 async def test_menu_del_preset_with_existing(
     hass: HomeAssistant,
     options_step_select_action,
-    add_controller_1,
-    add_screen,
-    add_mask,
-    add_ciw_1,
-    add_preset_1,
-    add_preset_2,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
+    options_add_ciw_1,
+    options_add_preset_1,
+    options_add_preset_2,
     options_flow_id,
 ) -> None:
     """Verify Del Preset menu item."""
@@ -897,9 +897,9 @@ async def test_menu_del_preset_with_existing(
 async def test_add_ciw_no_baseline_drop(
     hass: HomeAssistant,
     options_step_add_ciw_manager,
-    add_controller_1,
-    add_screen,
-    add_mask,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
     options_flow_id,
 ) -> None:
     """Test Add CIW action."""
@@ -929,9 +929,9 @@ async def test_add_ciw_no_baseline_drop(
 async def test_add_ciw_with_baseline_drop(
     hass: HomeAssistant,
     options_step_add_ciw_manager,
-    add_controller_1,
-    add_screen,
-    add_mask,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
     options_flow_id,
 ) -> None:
     """Test Add CIW action."""
@@ -962,9 +962,9 @@ async def test_add_ciw_with_baseline_drop(
 async def test_add_ciw_with_invalid_baseline_drop(
     hass: HomeAssistant,
     options_step_add_ciw_manager,
-    add_controller_1,
-    add_screen,
-    add_mask,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
     options_flow_id,
 ) -> None:
     """Test Add CIW action."""
@@ -991,9 +991,9 @@ async def test_add_ciw_with_invalid_baseline_drop(
 async def test_add_preset(
     hass: HomeAssistant,
     options_step_add_preset,
-    add_controller_1,
-    add_screen,
-    add_mask,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
     options_flow_id,
 ) -> None:
     """Test Add Preset action."""
@@ -1026,9 +1026,9 @@ async def test_add_preset(
 async def test_add_preset_no_selection(
     hass: HomeAssistant,
     options_step_add_preset,
-    add_controller_1,
-    add_screen,
-    add_mask,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
     options_flow_id,
 ) -> None:
     """Test Add Preset action with no selection."""
@@ -1048,12 +1048,12 @@ async def test_add_preset_no_selection(
 async def test_define_drop_1_of_2(
     hass: HomeAssistant,
     options_step_define_drop,
-    add_controller_1,
-    add_screen,
-    add_mask,
-    add_partial_preset_1_no_drops,
-    add_drop_for_screen,
-    add_drop_for_mask,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
+    options_add_partial_preset_1_no_drops,
+    options_add_drop_for_screen,
+    options_add_drop_for_mask,
     options_flow_id,
 ) -> None:
     """Test add first drop of two"""
@@ -1079,11 +1079,11 @@ async def test_define_drop_1_of_2(
 async def test_define_drop_2_of_2(
     hass: HomeAssistant,
     options_step_define_drop,
-    add_controller_1,
-    add_screen,
-    add_mask,
-    add_partial_preset_1_one_drop,
-    add_drop_for_mask,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
+    options_add_partial_preset_1_one_drop,
+    options_add_drop_for_mask,
     options_flow_id,
 ) -> None:
     """Test add second drop of two"""
@@ -1104,12 +1104,12 @@ async def test_define_drop_2_of_2(
 async def test_define_drop_invalid_drop(
     hass: HomeAssistant,
     options_step_define_drop,
-    add_controller_1,
-    add_screen,
-    add_mask,
-    add_partial_preset_1_no_drops,
-    add_drop_for_screen,
-    add_drop_for_mask,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
+    options_add_partial_preset_1_no_drops,
+    options_add_drop_for_screen,
+    options_add_drop_for_mask,
     options_flow_id,
 ) -> None:
     """Test invalid drop."""
@@ -1129,10 +1129,10 @@ async def count_entities(hass, entry_id, unique_id_prefix):
 async def test_del_ciw(
     hass: HomeAssistant,
     options_step_del_ciw_manager,
-    add_controller_1,
-    add_screen,
-    add_mask,
-    add_ciw_1,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
+    options_add_ciw_1,
     config_entry,
     options_flow_id,
 ) -> None:
@@ -1160,11 +1160,11 @@ async def test_del_ciw(
 async def test_del_preset(
     hass: HomeAssistant,
     options_step_del_preset,
-    add_controller_1,
-    add_screen,
-    add_mask,
-    add_preset_1,
-    add_preset_2,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
+    options_add_preset_1,
+    options_add_preset_2,
     options_flow_id,
 ) -> None:
     """Test Del Preset action."""
