@@ -22,13 +22,15 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from voluptuous import MultipleInvalid
 
 import custom_components.nice.config_flow
-from custom_components.nice.config_flow import make_id
+from custom_components.nice.config_flow import OptionsFlowHandler, make_id
 from custom_components.nice.const import (
     ACTION_ADD_CIW,
     ACTION_ADD_PRESET,
     ACTION_DEL_CIW,
     ACTION_DEL_PRESET,
     CONF_ACTION,
+    CONF_CIW_MANAGERS,
+    CONF_PRESETS,
     DOMAIN,
 )
 
@@ -38,6 +40,7 @@ CONTROLLER_1_ID = "controller_1_id"
 COVER_1_ID = "cover_1_id"
 COVER_2_ID = "cover_2_id"
 CIW_1_ID = "ciw_1_id"
+CIW_2_ID = "ciw_2_id"
 PRESET_1_ID = "preset_1_id"
 PRESET_2_ID = "preset_2_id"
 
@@ -115,13 +118,32 @@ TEST_MASK = {
     "image_area": None,
 }
 
-
 TEST_CIW_MANAGER_1 = {
     "name": "CIW Manager 1",
     "screen_cover": COVER_1_ID,
     "mask_cover": COVER_2_ID,
     "aspect_ratio_mode": "FIXED_MIDDLE",
     "baseline_drop": None,
+}
+
+TEST_CIW_MANAGER_2 = {
+    "name": "CIW Manager 2",
+    "screen_cover": COVER_1_ID,
+    "mask_cover": COVER_2_ID,
+    "aspect_ratio_mode": "FIXED_BOTTOM",
+    "baseline_drop": 1.0,
+}
+
+TEST_PARTIAL_PRESET_1_NO_DROPS = {
+    "name": "Preset 1",
+    "drops": [],
+}
+
+TEST_PARTIAL_PRESET_1_ONE_DROP = {
+    "name": "Preset 1",
+    "drops": [
+        {"cover": COVER_1_ID, "drop": 1.77},
+    ],
 }
 
 TEST_PRESET_1 = {
@@ -148,6 +170,10 @@ async def dummy_open_connection(serial_port=None):
 
 def get_flow(hass, flow_id):
     return hass.config_entries.flow._progress[flow_id]
+
+
+def get_options_flow(hass, flow_id):
+    return hass.config_entries.options._progress[flow_id]
 
 
 async def _dummy_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -229,18 +255,51 @@ async def config_flow_id(init_config_flow):
 
 
 @pytest.fixture
-async def init_options_flow(hass: HomeAssistant, config_entry):
-    return await hass.config_entries.options.async_init(config_entry.entry_id)
+def options_flow_state_override():
+    return {
+        "step_id": "dummy",
+        "tmp_preset_id": None,
+        "tmp_drops_to_define": [],
+    }
+
+
+@pytest.fixture
+async def init_options_flow(
+    hass: HomeAssistant,
+    config_entry,
+    options_flow_state_override,
+):
+    step_id = options_flow_state_override["step_id"]
+
+    async def async_step_setup_test(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        if options_flow_state_override["tmp_preset_id"] is not None:
+            self.tmp_preset_id = options_flow_state_override["tmp_preset_id"]
+        if options_flow_state_override["tmp_drops_to_define"] is not None:
+            self.tmp_drops_to_define = options_flow_state_override[
+                "tmp_drops_to_define"
+            ]
+        method = f"async_step_{step_id}"
+        return await getattr(self, method)(None)
+
+    with patch.object(
+        custom_components.nice.config_flow.OptionsFlowHandler,
+        "async_step_init",
+        async_step_setup_test,
+    ):
+        result = await hass.config_entries.options.async_init(config_entry.entry_id)
+
+    assert result["errors"] == {}
+    assert result["type"] == RESULT_TYPE_FORM
+    assert result["step_id"] == step_id
+
+    return result
 
 
 @pytest.fixture
 async def options_flow_id(init_options_flow):
     return init_options_flow["flow_id"]
-
-
-@pytest.fixture()
-def config_entry_options():
-    return {}
 
 
 @pytest.fixture()
@@ -266,28 +325,58 @@ async def config_entry(
 
 
 @pytest.fixture
-def step_title(config_flow_state_override):
+def config_step_title(config_flow_state_override):
     config_flow_state_override["step_id"] = "title"
 
 
 @pytest.fixture
-def step_controller(config_flow_state_override):
+def config_step_controller(config_flow_state_override):
     config_flow_state_override["step_id"] = "controller"
 
 
 @pytest.fixture
-def step_cover(config_flow_state_override):
+def config_step_cover(config_flow_state_override):
     config_flow_state_override["step_id"] = "cover"
 
 
 @pytest.fixture
-def step_image_area(config_flow_state_override):
+def config_step_image_area(config_flow_state_override):
     config_flow_state_override["step_id"] = "image_area"
 
 
 @pytest.fixture
-def step_finish_cover(config_flow_state_override):
+def config_step_finish_cover(config_flow_state_override):
     config_flow_state_override["step_id"] = "finish_cover"
+
+
+@pytest.fixture
+def options_step_select_action(options_flow_state_override):
+    options_flow_state_override["step_id"] = "select_action"
+
+
+@pytest.fixture
+def options_step_add_ciw_manager(options_flow_state_override):
+    options_flow_state_override["step_id"] = "add_ciw_manager"
+
+
+@pytest.fixture
+def options_step_add_preset(options_flow_state_override):
+    options_flow_state_override["step_id"] = "add_preset"
+
+
+@pytest.fixture
+def options_step_define_drop(options_flow_state_override):
+    options_flow_state_override["step_id"] = "define_drop"
+
+
+@pytest.fixture
+def options_step_del_ciw_manager(options_flow_state_override):
+    options_flow_state_override["step_id"] = "del_ciw_manager"
+
+
+@pytest.fixture
+def options_step_del_preset(options_flow_state_override):
+    options_flow_state_override["step_id"] = "del_preset"
 
 
 @pytest.fixture
@@ -327,8 +416,30 @@ def add_preset_1(options_data):
 
 
 @pytest.fixture
+def add_partial_preset_1_no_drops(options_data, options_flow_state_override):
+    options_data["presets"][PRESET_1_ID] = TEST_PARTIAL_PRESET_1_NO_DROPS
+    options_flow_state_override["tmp_preset_id"] = PRESET_1_ID
+
+
+@pytest.fixture
+def add_partial_preset_1_one_drop(options_data, options_flow_state_override):
+    options_data["presets"][PRESET_1_ID] = TEST_PARTIAL_PRESET_1_ONE_DROP
+    options_flow_state_override["tmp_preset_id"] = PRESET_1_ID
+
+
+@pytest.fixture
 def add_preset_2(options_data):
     options_data["presets"][PRESET_2_ID] = TEST_PRESET_2
+
+
+@pytest.fixture
+def add_drop_for_screen(options_flow_state_override):
+    options_flow_state_override["tmp_drops_to_define"].append(COVER_1_ID)
+
+
+@pytest.fixture
+def add_drop_for_mask(options_flow_state_override):
+    options_flow_state_override["tmp_drops_to_define"].append(COVER_2_ID)
 
 
 async def test_make_id():
@@ -352,7 +463,7 @@ async def test_user_step(hass):
 
 async def test_title(
     hass: HomeAssistant,
-    step_title,
+    config_step_title,
     config_flow_id,
 ) -> None:
     """Test title step."""
@@ -371,7 +482,7 @@ async def test_title(
 
 async def test_controller_valid_port(
     hass: HomeAssistant,
-    step_controller,
+    config_step_controller,
     config_flow_id,
 ) -> None:
     """Test valid serial port."""
@@ -401,7 +512,7 @@ async def test_controller_valid_port(
 
 async def test_controller_invalid_port(
     hass: HomeAssistant,
-    step_controller,
+    config_step_controller,
     config_flow_id,
 ) -> None:
     """Test invalid serial port."""
@@ -425,7 +536,7 @@ async def test_controller_invalid_port(
 
 async def test_cover_with_image_area(
     hass: HomeAssistant,
-    step_cover,
+    config_step_cover,
     add_controller_1,
     config_flow_id,
 ) -> None:
@@ -451,7 +562,7 @@ async def test_cover_with_image_area(
 
 async def test_cover_without_image_area(
     hass: HomeAssistant,
-    step_cover,
+    config_step_cover,
     add_controller_1,
     config_flow_id,
 ) -> None:
@@ -476,7 +587,7 @@ async def test_cover_without_image_area(
 
 async def test_image_area(
     hass: HomeAssistant,
-    step_image_area,
+    config_step_image_area,
     add_controller_1,
     add_partial_screen,
     config_flow_id,
@@ -495,7 +606,7 @@ async def test_image_area(
 
 async def test_invalid_image_area(
     hass: HomeAssistant,
-    step_image_area,
+    config_step_image_area,
     add_controller_1,
     add_partial_screen,
     config_flow_id,
@@ -514,7 +625,7 @@ async def test_invalid_image_area(
 
 async def test_finish_cover(
     hass: HomeAssistant,
-    step_finish_cover,
+    config_step_finish_cover,
     set_title,
     add_controller_1,
     add_screen,
@@ -542,7 +653,7 @@ async def test_finish_cover(
 
 async def test_add_another_cover(
     hass: HomeAssistant,
-    step_finish_cover,
+    config_step_finish_cover,
     set_title,
     add_controller_1,
     add_screen,
@@ -560,8 +671,30 @@ async def test_add_another_cover(
     assert result["step_id"] == "cover"
 
 
+async def test_options_init_step(
+    hass,
+    add_controller_1,
+    add_screen,
+    add_mask,
+    config_entry,
+):
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+
+    assert result["errors"] == {}
+    assert result["type"] == RESULT_TYPE_FORM
+    assert result["step_id"] == "select_action"
+
+    flow_id = result["flow_id"]
+    flow: OptionsFlowHandler = get_options_flow(hass, flow_id)
+
+    assert flow.data == {CONF_CIW_MANAGERS: {}, CONF_PRESETS: {}}
+    assert flow.valid_screen_covers == {COVER_1_ID: "Screen"}
+    assert flow.valid_mask_covers == {COVER_2_ID: "Mask"}
+
+
 async def test_menu_add_ciw_with_mask(
     hass: HomeAssistant,
+    options_step_select_action,
     add_controller_1,
     add_screen,
     add_mask,
@@ -578,6 +711,7 @@ async def test_menu_add_ciw_with_mask(
 
 async def test_menu_add_ciw_no_mask(
     hass: HomeAssistant,
+    options_step_select_action,
     add_controller_1,
     add_screen,
     options_flow_id,
@@ -591,6 +725,7 @@ async def test_menu_add_ciw_no_mask(
 
 async def test_menu_add_ciw_with_existing(
     hass: HomeAssistant,
+    options_step_select_action,
     add_controller_1,
     add_screen,
     add_mask,
@@ -610,6 +745,7 @@ async def test_menu_add_ciw_with_existing(
 
 async def test_menu_del_ciw_with_mask(
     hass: HomeAssistant,
+    options_step_select_action,
     add_controller_1,
     add_screen,
     add_mask,
@@ -624,6 +760,7 @@ async def test_menu_del_ciw_with_mask(
 
 async def test_menu_del_ciw_no_mask(
     hass: HomeAssistant,
+    options_step_select_action,
     add_controller_1,
     add_screen,
     options_flow_id,
@@ -637,6 +774,7 @@ async def test_menu_del_ciw_no_mask(
 
 async def test_menu_del_ciw_with_existing(
     hass: HomeAssistant,
+    options_step_select_action,
     add_controller_1,
     add_screen,
     add_mask,
@@ -656,6 +794,7 @@ async def test_menu_del_ciw_with_existing(
 
 async def test_menu_add_preset_with_mask(
     hass: HomeAssistant,
+    options_step_select_action,
     add_controller_1,
     add_screen,
     add_mask,
@@ -672,6 +811,7 @@ async def test_menu_add_preset_with_mask(
 
 async def test_menu_add_preset_no_mask(
     hass: HomeAssistant,
+    options_step_select_action,
     add_controller_1,
     add_screen,
     options_flow_id,
@@ -687,6 +827,7 @@ async def test_menu_add_preset_no_mask(
 
 async def test_menu_add_preset_with_existing(
     hass: HomeAssistant,
+    options_step_select_action,
     add_controller_1,
     add_screen,
     add_mask,
@@ -706,6 +847,7 @@ async def test_menu_add_preset_with_existing(
 
 async def test_menu_mask_del_preset_with_mask(
     hass: HomeAssistant,
+    options_step_select_action,
     add_controller_1,
     add_screen,
     add_mask,
@@ -720,6 +862,7 @@ async def test_menu_mask_del_preset_with_mask(
 
 async def test_menu_del_preset_no_mask(
     hass: HomeAssistant,
+    options_step_select_action,
     add_controller_1,
     add_screen,
     options_flow_id,
@@ -733,6 +876,7 @@ async def test_menu_del_preset_no_mask(
 
 async def test_menu_del_preset_with_existing(
     hass: HomeAssistant,
+    options_step_select_action,
     add_controller_1,
     add_screen,
     add_mask,
@@ -750,21 +894,15 @@ async def test_menu_del_preset_with_existing(
     assert result["step_id"] == "del_preset"
 
 
-async def test_add_ciw(
+async def test_add_ciw_no_baseline_drop(
     hass: HomeAssistant,
+    options_step_add_ciw_manager,
     add_controller_1,
     add_screen,
     add_mask,
     options_flow_id,
 ) -> None:
     """Test Add CIW action."""
-    result = await hass.config_entries.options.async_configure(
-        options_flow_id, user_input={CONF_ACTION: ACTION_ADD_CIW}
-    )
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "add_ciw_manager"
-
     with patch(
         "custom_components.nice.config_flow.make_id",
         return_value=CIW_1_ID,
@@ -788,21 +926,77 @@ async def test_add_ciw(
     }
 
 
+async def test_add_ciw_with_baseline_drop(
+    hass: HomeAssistant,
+    options_step_add_ciw_manager,
+    add_controller_1,
+    add_screen,
+    add_mask,
+    options_flow_id,
+) -> None:
+    """Test Add CIW action."""
+    with patch(
+        "custom_components.nice.config_flow.make_id",
+        return_value=CIW_2_ID,
+    ):
+        result = await hass.config_entries.options.async_configure(
+            options_flow_id,
+            user_input={
+                "name": "CIW Manager 2",
+                "screen_cover": COVER_1_ID,
+                "mask_cover": COVER_2_ID,
+                "aspect_ratio_mode": "FIXED_BOTTOM",
+                "baseline_drop": 1.0,
+            },
+        )
+
+    assert result["type"] == RESULT_TYPE_CREATE_ENTRY
+    assert result["title"] == ""
+    assert result["result"] is True
+    assert result["data"] == {
+        "ciw_managers": {CIW_2_ID: TEST_CIW_MANAGER_2},
+        "presets": {},
+    }
+
+
+async def test_add_ciw_with_invalid_baseline_drop(
+    hass: HomeAssistant,
+    options_step_add_ciw_manager,
+    add_controller_1,
+    add_screen,
+    add_mask,
+    options_flow_id,
+) -> None:
+    """Test Add CIW action."""
+    with patch(
+        "custom_components.nice.config_flow.make_id",
+        return_value=CIW_2_ID,
+    ):
+        result = await hass.config_entries.options.async_configure(
+            options_flow_id,
+            user_input={
+                "name": "CIW Manager 2",
+                "screen_cover": COVER_1_ID,
+                "mask_cover": COVER_2_ID,
+                "aspect_ratio_mode": "FIXED_BOTTOM",
+                "baseline_drop": 0.2,
+            },
+        )
+
+    assert result["errors"] == {"base": "invalid_baseline_drop"}
+    assert result["type"] == RESULT_TYPE_FORM
+    assert result["step_id"] == "add_ciw_manager"
+
+
 async def test_add_preset(
     hass: HomeAssistant,
+    options_step_add_preset,
     add_controller_1,
     add_screen,
     add_mask,
     options_flow_id,
 ) -> None:
     """Test Add Preset action."""
-    result = await hass.config_entries.options.async_configure(
-        options_flow_id, user_input={CONF_ACTION: ACTION_ADD_PRESET}
-    )
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "add_preset"
-
     with patch(
         "custom_components.nice.config_flow.make_id",
         return_value=PRESET_1_ID,
@@ -819,6 +1013,50 @@ async def test_add_preset(
     assert result["type"] == RESULT_TYPE_FORM
     assert result["step_id"] == "define_drop"
 
+    flow_id = result["flow_id"]
+    flow: OptionsFlowHandler = get_options_flow(hass, flow_id)
+
+    assert flow.data == {
+        "ciw_managers": {},
+        "presets": {PRESET_1_ID: TEST_PARTIAL_PRESET_1_NO_DROPS},
+    }
+    assert flow.tmp_drops_to_define == [COVER_1_ID, COVER_2_ID]
+
+
+async def test_add_preset_no_selection(
+    hass: HomeAssistant,
+    options_step_add_preset,
+    add_controller_1,
+    add_screen,
+    add_mask,
+    options_flow_id,
+) -> None:
+    """Test Add Preset action with no selection."""
+    result = await hass.config_entries.options.async_configure(
+        options_flow_id,
+        user_input={
+            "name": "Preset 1",
+            "select": [],
+        },
+    )
+
+    assert result["errors"] == {"base": "no_covers_selected"}
+    assert result["type"] == RESULT_TYPE_FORM
+    assert result["step_id"] == "add_preset"
+
+
+async def test_define_drop_1_of_2(
+    hass: HomeAssistant,
+    options_step_define_drop,
+    add_controller_1,
+    add_screen,
+    add_mask,
+    add_partial_preset_1_no_drops,
+    add_drop_for_screen,
+    add_drop_for_mask,
+    options_flow_id,
+) -> None:
+    """Test add first drop of two"""
     result = await hass.config_entries.options.async_configure(
         options_flow_id,
         user_input={"drop": 1.77},
@@ -828,6 +1066,27 @@ async def test_add_preset(
     assert result["type"] == RESULT_TYPE_FORM
     assert result["step_id"] == "define_drop"
 
+    flow_id = result["flow_id"]
+    flow: OptionsFlowHandler = get_options_flow(hass, flow_id)
+
+    assert flow.data == {
+        "ciw_managers": {},
+        "presets": {PRESET_1_ID: TEST_PARTIAL_PRESET_1_ONE_DROP},
+    }
+    assert flow.tmp_drops_to_define == [COVER_2_ID]
+
+
+async def test_define_drop_2_of_2(
+    hass: HomeAssistant,
+    options_step_define_drop,
+    add_controller_1,
+    add_screen,
+    add_mask,
+    add_partial_preset_1_one_drop,
+    add_drop_for_mask,
+    options_flow_id,
+) -> None:
+    """Test add second drop of two"""
     result = await hass.config_entries.options.async_configure(
         options_flow_id,
         user_input={"drop": 0.5},
@@ -842,70 +1101,23 @@ async def test_add_preset(
     }
 
 
-async def test_add_preset_invalid_drop(
+async def test_define_drop_invalid_drop(
     hass: HomeAssistant,
+    options_step_define_drop,
     add_controller_1,
     add_screen,
     add_mask,
+    add_partial_preset_1_no_drops,
+    add_drop_for_screen,
+    add_drop_for_mask,
     options_flow_id,
 ) -> None:
-    """Test Add Preset action with invalid drop."""
-    result = await hass.config_entries.options.async_configure(
-        options_flow_id, user_input={CONF_ACTION: ACTION_ADD_PRESET}
-    )
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "add_preset"
-
-    with patch(
-        "custom_components.nice.config_flow.make_id",
-        return_value=PRESET_1_ID,
-    ):
-        result = await hass.config_entries.options.async_configure(
-            options_flow_id,
-            user_input={
-                "name": "Preset 1",
-                "select": [COVER_1_ID, COVER_2_ID],
-            },
-        )
-
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "define_drop"
-
+    """Test invalid drop."""
     with pytest.raises(MultipleInvalid):
         await hass.config_entries.options.async_configure(
             options_flow_id,
             user_input={"drop": 2.0},
         )
-
-
-async def test_add_preset_no_selection(
-    hass: HomeAssistant,
-    add_controller_1,
-    add_screen,
-    add_mask,
-    options_flow_id,
-) -> None:
-    """Test Add Preset action with no selection."""
-    result = await hass.config_entries.options.async_configure(
-        options_flow_id, user_input={CONF_ACTION: ACTION_ADD_PRESET}
-    )
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "add_preset"
-
-    result = await hass.config_entries.options.async_configure(
-        options_flow_id,
-        user_input={
-            "name": "Preset 1",
-            "select": [],
-        },
-    )
-
-    assert result["errors"] == {"base": "no_covers_selected"}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "add_preset"
 
 
 async def count_entities(hass, entry_id, unique_id_prefix):
@@ -916,6 +1128,7 @@ async def count_entities(hass, entry_id, unique_id_prefix):
 
 async def test_del_ciw(
     hass: HomeAssistant,
+    options_step_del_ciw_manager,
     add_controller_1,
     add_screen,
     add_mask,
@@ -929,13 +1142,6 @@ async def test_del_ciw(
 
     num_entities = await count_entities(hass, config_entry.entry_id, id)
     assert num_entities > 0
-
-    result = await hass.config_entries.options.async_configure(
-        options_flow_id, user_input={CONF_ACTION: ACTION_DEL_CIW}
-    )
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "del_ciw_manager"
 
     result = await hass.config_entries.options.async_configure(
         options_flow_id,
@@ -953,6 +1159,7 @@ async def test_del_ciw(
 
 async def test_del_preset(
     hass: HomeAssistant,
+    options_step_del_preset,
     add_controller_1,
     add_screen,
     add_mask,
@@ -961,13 +1168,6 @@ async def test_del_preset(
     options_flow_id,
 ) -> None:
     """Test Del Preset action."""
-    result = await hass.config_entries.options.async_configure(
-        options_flow_id, user_input={CONF_ACTION: ACTION_DEL_PRESET}
-    )
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "del_preset"
-
     result = await hass.config_entries.options.async_configure(
         options_flow_id,
         user_input={"select": [PRESET_1_ID, PRESET_2_ID]},
