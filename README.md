@@ -103,7 +103,18 @@ Select an option and click on Submit to move to the next step.
 
 ## Adding a CIW Manager
 
-Give the CIW Manager a name and then select the screen and mask from the drop downs. Click on Submit to create the CIW Manager.
+Enter the following details:
+
+- Enter the CIW Manager Name.
+- Select the Screen and Mask.
+- Select an aspect ratio mode and baseline drop. The baseline_drop is a fixed drop to be used as a baseline. The aspect ratio mode specifies whether the top, middle or bottom of the resulting image area will be held constant relative to the baseline.
+
+The baseline drop is sanity checked depending on the mode as follows:
+
+- TOP: the baseline drop must be between zero and the maximum drop of the mask
+- MIDDLE/BOTTOM: the baseline drop must be such that a minimum image height corresponding to an aspect ratio of 3.5 can be achieved
+
+Click on Submit to create the CIW Manager.
 
 ## Deleting CIW Managers
 
@@ -122,6 +133,12 @@ Select the Preset(s) to be deleted. Click on Submit to delete them.
 ## nice.apply_preset
 
 Takes the name of the Preset as the argument
+
+## nice.set_aspect_ratio
+
+Takes the name of the CIW Manager and the desired aspect ratio as parameters.
+
+The CIW Manager will move the screen and mask to achieve the requested aspect ratio. The CIW manager uses two internal parameters, the mode and the baseline_drop, to determine the positions of the screen and mask. The baseline_drop is a fixed drop to be used as a baseline. The mode specifies whether the top, middle or bottom of the resulting image area will be held constant relative to the baseline.
 
 # Emulator
 
