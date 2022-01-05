@@ -23,10 +23,13 @@ The Integration offers a service called `nice.apply_preset` which will move any 
 
 The Integration was designed with projector screens in mind and offers some optional features for controlling multiple Covers in a Constant Image Width (CIW) configuration.
 
-A Cover can optionally have an Image Area defined to represent the screen. An optional helper called a "CIW Manager" can be definedwhich links a Cover that is a Screen and a Cover that is a Mask. The following entities are created for each "CIW Manager".
+A Cover can optionally have an Image Area defined to represent the screen. An optional helper called a "CIW Manager" can be defined which links a Cover that is a Screen and a Cover that is a Mask. The following `sensor` entities are created for each "CIW Manager":
 
-- A `number` entity that can be used to inspect or set the Aspect Ratio
-- `sensor` entities for Image Height, Image Width, Image Diagonal and Image Area
+- Image Height in metres
+- Image Width in metres
+- Image Diagonal in metres
+- Image Area in square metres
+- Aspect Ratio
 
 # Initial Configuration
 
