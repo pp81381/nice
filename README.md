@@ -17,7 +17,7 @@ The Integration allows for the control of multiple Covers. There can be one or m
 
 ## Presets
 
-The Integration offers a service called `nice.apply_preset` which will move any number of Covers to preset positions.
+The Integration offers a service called [nice.apply_preset](#nice.apply_preset) which will move any number of Covers to preset positions.
 
 ## Projector Screen Control
 
@@ -30,6 +30,8 @@ A Cover can optionally have an Image Area defined to represent the screen. An op
 - Image Diagonal in metres
 - Image Area in square metres
 - Aspect Ratio
+
+The Integration offers a service called [nice.set_aspect_ratio](#nice.set_aspect_ratio) which will set the Covers managed by a CIW Manager to a specific Aspect Ratio.
 
 # Initial Configuration
 
@@ -64,12 +66,14 @@ Click Submit to move to the next step or create another controller as appropriat
 
 Enter the following details:
 
-- Cover Name
-- Controller (select from a drop down list)
-- Device Address (get this from your vendor documentation - as an example, the projector screen might be device 2 and the mask might be device 3)
-- Device Node (again, get this from the documentation - usually 4)
-- Drop (enter the maximum drop in metres)
-- Image Area? (Check this box if the Cover is a screen)
+| Field          | Description                                                                                                                                                       |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cover Name     | Name of the Cover                                                                                                                                                 |
+| Controller     | The Controller<br>Select from a drop down list                                                                                                                    |
+| Device Address | The TTBus address of the device<br>Get this from your vendor documentation - as an example, the projector screen might be device 2 and the mask might be device 3 |
+| Device Node    | The TTBus node of the device<br>Again, get this from the documentation - usually 4                                                                                |
+| Drop           | The maximum drop of the Cover in metres                                                                                                                           |
+| Image Area     | Check this box if the Cover is a screen<br>If the Cover has an Image Area then additional details will be collected in the next step                              |
 
 Click on Submit to move to the next step.
 
@@ -77,11 +81,13 @@ Click on Submit to move to the next step.
 
 If the Cover has an Image Area then enter the following details:
 
-- Height of the border below the image
-- The height of the Image Area
-- The Aspect Ratio
+| Field        | Description                                    |
+| ------------ | ---------------------------------------------- |
+| Border Below | Height of the border below the image in metres |
+| Height       | The height of the Image Area in metres         |
+| Aspect Ratio | The Aspect Ratio                               |
 
-The height of the Image Area plus the border below the Image Area cannot be larger than the maximum drop defined in the previous step.
+Height plus the Border Below cannot be larger than the maximum drop defined in the previous step.
 
 Click on Submit to move to the next step.
 
