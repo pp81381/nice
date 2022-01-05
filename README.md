@@ -94,27 +94,36 @@ Click on Submit to either create another Cover or finish the configuration.
 
 Navigate to Configuration->Integrations, locate the Nice Integration and click on "Configure". The following options can be seleced from the "Choose Action" screen.
 
-- Add CIW Manager. This option is shown if there is at least one Cover with an Image Area (a Screen) and one without (a Mask).
-- Del CIW Manager. This option is only shown if any CIW Managers exist.
-- Add Preset.
-- Del Preset. This option is only shown if any Presets exist.
+| Option          | Description                                                                                                                      |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Add CIW Manager | Add a CIW Manager<br>This option is shown if there is at least one Cover with an Image Area (a Screen) and one without (a Mask). |
+| Del CIW Manager | Delete a CIW Manager<br>This option is only shown if any CIW Managers exist.                                                     |
+| Add Preset      | Add a Preset                                                                                                                     |
+| Del Preset      | Delete a Preset<br>This option is only shown if any Presets exist.                                                               |
 
 Select an option and click on Submit to move to the next step.
 
 ## Adding a CIW Manager
 
-Enter the following details:
+Enter the following details and then click on Submit to create the CIW Manager.
 
-- Enter the CIW Manager Name.
-- Select the Screen and Mask.
-- Select an aspect ratio mode and baseline drop. The baseline_drop is a fixed drop to be used as a baseline. The aspect ratio mode specifies whether the top, middle or bottom of the resulting image area will be held constant relative to the baseline.
+| Field             | Description                                                                                                                                        |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Name              | A friendly name for the Object                                                                                                                     |
+| Screen            | Name of the screen<br>Only Covers with an Image Area can be selected                                                                               |
+| Mask              | Name of the mask<br>Only covers without an image Area can be selected                                                                              |
+| Aspect Ratio Mode | Specifies whether the top, middle or bottom of the resulting image area will be held constant relative to the baseline as the aspect ratio changes |
+| Baseline Drop     | Fixed drop in metres to be used as a baseline when setting the aspect ratio<br>Will be defaulted if left blank                                     |
 
-The baseline drop is sanity checked depending on the mode as follows:
+Note that the Baseline Drop field is defaulted/validated as follows:
 
-- TOP: the baseline drop must be between zero and the maximum drop of the mask
-- MIDDLE/BOTTOM: the baseline drop must be such that a minimum image height corresponding to an aspect ratio of 3.5 can be achieved
+| Aspect Ratio Mode | Default Baseline Drop                                       | Validation Rule                                                                                                                                                                 |
+| ----------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FIXED_TOP         | Top of the Image Area when the Screen is fully down         | Min:0.0<br>Max: Maximum Drop of the Mask                                                                                                                                        |
+| FIXED_MIDDLE      | Centre line of the Image Area when the screen is fully down | Min: Centre line of minimum-height valid Image where Image Area is as high as possible<br>Max: Centre line of minimum-height valid Image where Image Area is as low as possible |
+| FIXED_BOTTOM      | Bottom of the Image Area when the Screen is fully down      | Min: Bottom of minimum-height valid Image where Image Area is as high as possible<br>Max: Bottom of minimum-height valid Image where Image Area is as low as possible           |
 
-Click on Submit to create the CIW Manager.
+Note that the minimum height of the Image Area corresponds to an aspect ratio of 3.5.
 
 ## Deleting CIW Managers
 
