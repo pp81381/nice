@@ -29,9 +29,11 @@ from custom_components.nice.const import (
     ACTION_ADD_PRESET,
     ACTION_DEL_CIW,
     ACTION_DEL_PRESET,
+    ACTION_SENSOR_PREFS,
     CONF_ACTION,
     CONF_CIW_MANAGERS,
     CONF_PRESETS,
+    CONF_SENSOR_PREFS,
     DOMAIN,
 )
 
@@ -205,6 +207,7 @@ def options_data():
     return {
         "ciw_managers": {},
         "presets": {},
+        "sensor_prefs": {},
     }
 
 
@@ -379,6 +382,11 @@ def options_step_del_ciw_manager(options_flow_state_override):
 @pytest.fixture
 def options_step_del_preset(options_flow_state_override):
     options_flow_state_override["step_id"] = "del_preset"
+
+
+@pytest.fixture
+def options_step_sensor_prefs(options_flow_state_override):
+    options_flow_state_override["step_id"] = "sensor_prefs"
 
 
 @pytest.fixture
@@ -712,7 +720,7 @@ async def test_options_init_step(
     flow_id = result["flow_id"]
     flow: OptionsFlowHandler = get_options_flow(hass, flow_id)
 
-    assert flow.data == {CONF_CIW_MANAGERS: {}, CONF_PRESETS: {}}
+    assert flow.data == {CONF_CIW_MANAGERS: {}, CONF_PRESETS: {}, CONF_SENSOR_PREFS: {}}
     assert flow.valid_screen_covers == {COVER_1_ID: "Screen"}
     assert flow.valid_mask_covers == {COVER_2_ID: "Mask"}
 
@@ -919,6 +927,22 @@ async def test_menu_del_preset_with_existing(
     assert result["step_id"] == "del_preset"
 
 
+async def test_menu_sensor_prefs(
+    hass: HomeAssistant,
+    options_step_select_action,
+    config_add_controller_1,
+    config_add_screen,
+    options_flow_id,
+) -> None:
+    """Verify Sensor Prefs menu item."""
+    result = await hass.config_entries.options.async_configure(
+        options_flow_id, user_input={CONF_ACTION: ACTION_SENSOR_PREFS}
+    )
+    assert result["errors"] == {}
+    assert result["type"] == RESULT_TYPE_FORM
+    assert result["step_id"] == "sensor_prefs"
+
+
 async def test_add_ciw_no_baseline_drop(
     hass: HomeAssistant,
     options_step_add_ciw_manager,
@@ -948,6 +972,7 @@ async def test_add_ciw_no_baseline_drop(
     assert result["data"] == {
         "ciw_managers": {CIW_1_ID: TEST_CIW_MANAGER_1},
         "presets": {},
+        "sensor_prefs": {},
     }
 
 
@@ -981,6 +1006,7 @@ async def test_add_ciw_with_baseline_drop(
     assert result["data"] == {
         "ciw_managers": {CIW_2_ID: TEST_CIW_MANAGER_2},
         "presets": {},
+        "sensor_prefs": {},
     }
 
 
@@ -1044,6 +1070,7 @@ async def test_add_preset(
     assert flow.data == {
         "ciw_managers": {},
         "presets": {PRESET_1_ID: TEST_PARTIAL_PRESET_1_NO_DROPS},
+        "sensor_prefs": {},
     }
     assert flow.tmp_drops_to_define == [COVER_1_ID, COVER_2_ID]
 
@@ -1097,6 +1124,7 @@ async def test_define_drop_1_of_2(
     assert flow.data == {
         "ciw_managers": {},
         "presets": {PRESET_1_ID: TEST_PARTIAL_PRESET_1_ONE_DROP},
+        "sensor_prefs": {},
     }
     assert flow.tmp_drops_to_define == [COVER_2_ID]
 
@@ -1123,6 +1151,7 @@ async def test_define_drop_2_of_2(
     assert result["data"] == {
         "ciw_managers": {},
         "presets": {PRESET_1_ID: TEST_PRESET_1},
+        "sensor_prefs": {},
     }
 
 
@@ -1179,7 +1208,11 @@ async def test_del_ciw(
     assert result["type"] == RESULT_TYPE_CREATE_ENTRY
     assert result["title"] == ""
     assert result["result"] is True
-    assert result["data"] == {"ciw_managers": {}, "presets": {}}
+    assert result["data"] == {
+        "ciw_managers": {},
+        "presets": {},
+        "sensor_prefs": {},
+    }
 
 
 async def test_del_preset(
@@ -1201,4 +1234,35 @@ async def test_del_preset(
     assert result["type"] == RESULT_TYPE_CREATE_ENTRY
     assert result["title"] == ""
     assert result["result"] is True
-    assert result["data"] == {"ciw_managers": {}, "presets": {}}
+    assert result["data"] == {
+        "ciw_managers": {},
+        "presets": {},
+        "sensor_prefs": {},
+    }
+
+
+async def test_sensor_prefs(
+    hass: HomeAssistant,
+    options_step_sensor_prefs,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
+    options_flow_id,
+) -> None:
+    """Test Sensor Preferences action."""
+    result = await hass.config_entries.options.async_configure(
+        options_flow_id,
+        user_input={
+            "unit_system": "metric",
+            "force_diagonal_imperial": True,
+        },
+    )
+
+    assert result["type"] == RESULT_TYPE_CREATE_ENTRY
+    assert result["title"] == ""
+    assert result["result"] is True
+    assert result["data"] == {
+        "ciw_managers": {},
+        "presets": {},
+        "sensor_prefs": {"unit_system": "metric", "force_diagonal_imperial": True},
+    }

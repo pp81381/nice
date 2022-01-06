@@ -106,6 +106,14 @@
         "data": {
           "select": "Select names to be removed"
         }
+      },
+      "sensor_prefs": {
+        "title": "Sensor Preferences",
+        "description": "Define preferences for the CIW and Cover sensors",
+        "data": {
+          "unit_system": "Sensor Unit System",
+          "force_diagonal_imperial": "Force the Diagonal sensors to display in inches regardless of unit system"
+        }
       }
     },
     "error": {

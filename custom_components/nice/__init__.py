@@ -34,6 +34,7 @@ from .const import (
     CONF_COVERS,
     CONF_DROP,
     CONF_DROPS,
+    CONF_FORCE_DIAGONAL_IMPERIAL,
     CONF_IMAGE_AREA,
     CONF_IMAGE_ASPECT_RATIO,
     CONF_IMAGE_BORDER_BELOW,
@@ -42,6 +43,7 @@ from .const import (
     CONF_NODE,
     CONF_PRESETS,
     CONF_SCREEN_COVER,
+    CONF_SENSOR_PREFS,
     CONF_SERIAL_PORT,
     DOMAIN,
     SERVICE_APPLY_PRESET,
@@ -180,8 +182,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     nd = NiceData()
 
     nd.config_unit_system = entry.data[CONF_UNIT_SYSTEM]
-    nd.sensor_unit_system = nd.config_unit_system  # TODO: entry.option
-    nd.force_imperial_diagonal = True  # TODO: entry.option
+    nd.sensor_unit_system = entry.options[CONF_SENSOR_PREFS].get(
+        CONF_UNIT_SYSTEM,
+        nd.config_unit_system,
+    )
+    nd.force_imperial_diagonal = entry.options[CONF_SENSOR_PREFS].get(
+        CONF_FORCE_DIAGONAL_IMPERIAL,
+        False,
+    )
 
     for controller_id, controller_config in entry.data[CONF_CONTROLLERS].items():
         await nd.add_controller(hass, controller_id, controller_config)

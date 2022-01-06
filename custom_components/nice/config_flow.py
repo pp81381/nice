@@ -32,6 +32,7 @@ from .const import (
     ACTION_ADD_PRESET,
     ACTION_DEL_CIW,
     ACTION_DEL_PRESET,
+    ACTION_SENSOR_PREFS,
     CONF_ACTION,
     CONF_ADD_ANOTHER,
     CONF_ADDRESS,
@@ -44,6 +45,7 @@ from .const import (
     CONF_COVERS,
     CONF_DROP,
     CONF_DROPS,
+    CONF_FORCE_DIAGONAL_IMPERIAL,
     CONF_HAS_IMAGE_AREA,
     CONF_IMAGE_AREA,
     CONF_IMAGE_ASPECT_RATIO,
@@ -53,11 +55,17 @@ from .const import (
     CONF_NODE,
     CONF_PRESETS,
     CONF_SCREEN_COVER,
+    CONF_SENSOR_PREFS,
     CONF_SELECT,
     CONF_SERIAL_PORT,
     CONF_TITLE,
     DOMAIN,
 )
+
+UNIT_SYSTEMS = {
+    CONF_UNIT_SYSTEM_METRIC: "Metric",
+    CONF_UNIT_SYSTEM_IMPERIAL: "Imperial",
+}
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -121,18 +129,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.data[CONF_UNIT_SYSTEM] = user_input[CONF_UNIT_SYSTEM]
             return await self.async_step_controller()
 
-        unit_systems = {
-            CONF_UNIT_SYSTEM_METRIC: "Metric",
-            CONF_UNIT_SYSTEM_IMPERIAL: "Imperial",
-        }
-
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_TITLE, default="Nice TT6"): str,
                 vol.Required(
                     CONF_UNIT_SYSTEM,
                     default=self.hass.config.units.name,
-                ): vol.In(unit_systems),
+                ): vol.In(UNIT_SYSTEMS),
             }
         )
 
@@ -299,6 +302,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 self.config_entry.options.get(CONF_CIW_MANAGERS, {})
             ),
             CONF_PRESETS: deepcopy(self.config_entry.options.get(CONF_PRESETS, {})),
+            CONF_SENSOR_PREFS: deepcopy(
+                self.config_entry.options.get(CONF_SENSOR_PREFS, {})
+            ),
         }
         self.valid_screen_covers = {
             id: config[CONF_NAME]
@@ -335,6 +341,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 return await self.async_step_add_preset()
             elif user_input[CONF_ACTION] == ACTION_DEL_PRESET:
                 return await self.async_step_del_preset()
+            elif user_input[CONF_ACTION] == ACTION_SENSOR_PREFS:
+                return await self.async_step_sensor_prefs()
             else:  # pragma: no cover
                 return self.async_abort(reason="not_implemented")
 
@@ -346,6 +354,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         actions.append(ACTION_ADD_PRESET)
         if len(self.data[CONF_PRESETS]) > 0:
             actions.append(ACTION_DEL_PRESET)
+        actions.append(ACTION_SENSOR_PREFS)
 
         data_schema = vol.Schema({vol.Required(CONF_ACTION): vol.In(actions)})
 
@@ -555,6 +564,47 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="del_preset",
+            data_schema=data_schema,
+            errors=errors,
+        )
+
+    async def async_step_sensor_prefs(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+
+        errors = {}
+
+        if user_input is not None:
+            self.data[CONF_SENSOR_PREFS] = {
+                CONF_UNIT_SYSTEM: user_input[CONF_UNIT_SYSTEM],
+                CONF_FORCE_DIAGONAL_IMPERIAL: user_input[CONF_FORCE_DIAGONAL_IMPERIAL],
+            }
+            return self.async_create_entry(title="", data=self.data)
+
+        sensor_prefs = self.data[CONF_SENSOR_PREFS]
+        default_unit_system = sensor_prefs.get(
+            CONF_UNIT_SYSTEM,
+            self.config_entry.data[CONF_UNIT_SYSTEM],
+        )
+        default_force_diagonal_imperial = sensor_prefs.get(
+            CONF_FORCE_DIAGONAL_IMPERIAL, False
+        )
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_UNIT_SYSTEM,
+                    default=default_unit_system,
+                ): vol.In(UNIT_SYSTEMS),
+                vol.Required(
+                    CONF_FORCE_DIAGONAL_IMPERIAL,
+                    default=default_force_diagonal_imperial,
+                ): bool,
+            }
+        )
+
+        return self.async_show_form(
+            step_id="sensor_prefs",
             data_schema=data_schema,
             errors=errors,
         )

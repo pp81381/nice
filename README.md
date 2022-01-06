@@ -110,12 +110,13 @@ Click on Submit to either create another Cover or finish the configuration.
 
 Navigate to Configuration->Integrations, locate the Nice Integration and click on "Configure". The following options can be seleced from the "Choose Action" screen.
 
-| Option          | Description                                                                                                                      |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Add CIW Manager | Add a CIW Manager<br>This option is shown if there is at least one Cover with an Image Area (a Screen) and one without (a Mask). |
-| Del CIW Manager | Delete a CIW Manager<br>This option is only shown if any CIW Managers exist.                                                     |
-| Add Preset      | Add a Preset                                                                                                                     |
-| Del Preset      | Delete a Preset<br>This option is only shown if any Presets exist.                                                               |
+| Option             | Description                                                                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Add CIW Manager    | Add a CIW Manager<br>This option is shown if there is at least one Cover with an Image Area (a Screen) and one without (a Mask). |
+| Del CIW Manager    | Delete a CIW Manager<br>This option is only shown if any CIW Managers exist.                                                     |
+| Add Preset         | Add a Preset                                                                                                                     |
+| Del Preset         | Delete a Preset<br>This option is only shown if any Presets exist.                                                               |
+| Sensor Preferences | Specify preferences for the CIW and Cover sensors such as Unit System and Rounding                                               |
 
 Select an option and click on Submit to move to the next step.
 
@@ -152,6 +153,17 @@ Give the Preset a name and select the list of Covers to be moved. Click Submit t
 ## Deleting Presets
 
 Select the Preset(s) to be deleted. Click on Submit to delete them.
+
+## Setting Sensor Preferences
+
+Specify the following preferences for the CIW and Cover sensors.
+
+| Setting                 | Description                                                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Sensor Unit System      | Unit System to be shown in the CIW and Cover sensors<br>The Integration Unit System will be converted to the Sensor Unit System |
+| Force Diagonal Imperial | Force the Diagonal sensors to display in inches regardless of unit system                                                       |
+
+Click on Submit to save the preferences.
 
 # Services
 
