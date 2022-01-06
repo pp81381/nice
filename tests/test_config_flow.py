@@ -325,8 +325,8 @@ async def config_entry(
 
 
 @pytest.fixture
-def config_step_title(config_flow_state_override):
-    config_flow_state_override["step_id"] = "title"
+def config_step_define(config_flow_state_override):
+    config_flow_state_override["step_id"] = "define"
 
 
 @pytest.fixture
@@ -458,15 +458,15 @@ async def test_user_step(hass):
     )
     assert result["errors"] == {}
     assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "title"
+    assert result["step_id"] == "define"
 
 
-async def test_title(
+async def test_define(
     hass: HomeAssistant,
-    config_step_title,
+    config_step_define,
     config_flow_id,
 ) -> None:
-    """Test title step."""
+    """Test define step."""
     result = await hass.config_entries.flow.async_configure(
         config_flow_id, {"title": TEST_TITLE}
     )

@@ -2,7 +2,7 @@
   "title": "Nice",
   "config": {
     "step": {
-      "title": {
+      "define": {
         "title": "Define Integration",
         "description": "Enter the details of this Integration",
         "data": {
