@@ -9,7 +9,12 @@ from uuid import uuid4
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_NAME
+from homeassistant.const import (
+    CONF_NAME,
+    CONF_UNIT_SYSTEM,
+    CONF_UNIT_SYSTEM_IMPERIAL,
+    CONF_UNIT_SYSTEM_METRIC,
+)
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.entity_registry import (
@@ -94,8 +99,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self):
         self.title = ""
         self.data = {
-            "controllers": {},
-            "covers": {},
+            CONF_UNIT_SYSTEM: None,
+            CONF_CONTROLLERS: {},
+            CONF_COVERS: {},
         }
         self.tmp = None
 
@@ -112,9 +118,23 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             self.title = user_input[CONF_TITLE]
+            self.data[CONF_UNIT_SYSTEM] = user_input[CONF_UNIT_SYSTEM]
             return await self.async_step_controller()
 
-        data_schema = vol.Schema({vol.Required(CONF_TITLE, default="Nice TT6"): str})
+        unit_systems = {
+            CONF_UNIT_SYSTEM_METRIC: "Metric",
+            CONF_UNIT_SYSTEM_IMPERIAL: "Imperial",
+        }
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(CONF_TITLE, default="Nice TT6"): str,
+                vol.Required(
+                    CONF_UNIT_SYSTEM,
+                    default=self.hass.config.units.name,
+                ): vol.In(unit_systems),
+            }
+        )
 
         return self.async_show_form(
             step_id="define",

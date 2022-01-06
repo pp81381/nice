@@ -6,7 +6,8 @@
         "title": "Define Integration",
         "description": "Enter the details of this Integration",
         "data": {
-          "title": "Integration Title"
+          "title": "Integration Title",
+          "unit_system": "Unit System for dimensions"
         }
       },
       "controller": {

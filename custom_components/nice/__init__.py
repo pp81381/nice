@@ -8,7 +8,12 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME, EVENT_HOMEASSISTANT_STOP
+from homeassistant.const import (
+    CONF_NAME,
+    CONF_UNIT_SYSTEM,
+    CONF_UNIT_SYSTEM_METRIC,
+    EVENT_HOMEASSISTANT_STOP,
+)
 from homeassistant.core import HomeAssistant
 from nicett6.ciw_helper import ImageDef
 from nicett6.ciw_manager import CIWAspectRatioMode, CIWManager
@@ -110,9 +115,12 @@ def image_def_from_config(config):
 
 class NiceData:
     def __init__(self):
+        self.config_unit_system: str = None
         self.controllers: dict[str, CoverManager] = {}
         self.tt6_covers: dict[str, dict[str, Any]] = {}
         self.ciw_mgrs: dict[str, CIWManager] = {}
+        self.force_imperial_diagonal: bool = False
+        self.sensor_unit_system: str = CONF_UNIT_SYSTEM_METRIC
 
     async def add_controller(self, hass, id, config):
         controller = NiceControllerWrapper(config[CONF_NAME])
@@ -170,6 +178,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug("nice async_setup_entry")
 
     nd = NiceData()
+
+    nd.config_unit_system = entry.data[CONF_UNIT_SYSTEM]
+    nd.sensor_unit_system = nd.config_unit_system  # TODO: entry.option
+    nd.force_imperial_diagonal = True  # TODO: entry.option
 
     for controller_id, controller_config in entry.data[CONF_CONTROLLERS].items():
         await nd.add_controller(hass, controller_id, controller_config)

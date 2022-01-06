@@ -1,10 +1,18 @@
-from dataclasses import dataclass
-from typing import Callable, Union
+from __future__ import annotations
+
+from typing import Callable
 
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.const import AREA_SQUARE_METERS, LENGTH_METERS
+from homeassistant.const import (
+    AREA_SQUARE_METERS,
+    CONF_UNIT_SYSTEM_METRIC,
+    LENGTH_FEET,
+    LENGTH_INCHES,
+    LENGTH_METERS,
+)
 from homeassistant.helpers.typing import StateType
 from homeassistant.util import slugify
+from homeassistant.util.distance import convert as convert_length_units
 from nicett6.ciw_helper import CIWHelper
 from nicett6.cover import Cover
 
@@ -12,91 +20,150 @@ from . import EntityUpdater, NiceData
 from .const import DOMAIN
 
 
-@dataclass
-class NiceSensorDef:
-    name: str
-    icon: Union[str, None]
-    unit_of_measurement: Union[str, None]
-    getter: Callable[[CIWHelper], StateType]
+def to_target_length_unit(value, from_length_unit, to_length_unit):
+    if value is None:
+        return None
+    else:
+        return convert_length_units(value, from_length_unit, to_length_unit)
 
 
-CIW_SENSORS = (
-    NiceSensorDef(
-        "Image Height",
-        "mdi:arrow-expand-vertical",
-        LENGTH_METERS,
-        lambda ciw_helper: ciw_helper.image_height,
-    ),
-    NiceSensorDef(
-        "Image Width",
-        "mdi:arrow-expand-horizontal",
-        LENGTH_METERS,
-        lambda ciw_helper: ciw_helper.image_width,
-    ),
-    NiceSensorDef(
-        "Image Diagonal",
-        "mdi:arrow-top-left-bottom-right",
-        LENGTH_METERS,
-        lambda ciw_helper: ciw_helper.image_diagonal,
-    ),
-    NiceSensorDef(
-        "Image Area",
-        "mdi:arrow-expand-all",
-        AREA_SQUARE_METERS,
-        lambda ciw_helper: ciw_helper.image_area,
-    ),
-    NiceSensorDef(
-        "Aspect Ratio",
-        "mdi:aspect-ratio",
-        None,
-        lambda ciw_helper: ciw_helper.aspect_ratio,
-    ),
-)
+def to_target_area_unit(value, from_length_unit, to_length_unit):
+    if value is None:
+        return None
+    else:
+        return convert_length_units(value, from_length_unit, to_length_unit) ** 2
 
-COVER_SENSORS = (
-    NiceSensorDef(
-        "Drop",
-        "mdi:arrow-collapse-down",
-        LENGTH_METERS,
-        lambda cover: cover.drop,
-    ),
-)
+
+class EntityBuilder:
+    def __init__(self, api: NiceData) -> None:
+        self.api = api
+        self.entities: list[NiceCIWSensor | NiceCoverSensor] = []
+
+    def add_ciw_sensors(
+        self,
+        name: str,
+        icon: str | None,
+        unit_of_measurement: str | None,
+        getter: Callable[[CIWHelper], StateType],
+    ):
+        self.entities.extend(
+            [
+                NiceCIWSensor(
+                    slugify(f"{id}_{name}"),
+                    item["ciw_manager"].get_helper(),
+                    f"{item['name']} {name}",
+                    icon,
+                    unit_of_measurement,
+                    getter,
+                )
+                for id, item in self.api.ciw_mgrs.items()
+            ]
+        )
+
+    def add_cover_sensors(
+        self,
+        name: str,
+        icon: str | None,
+        unit_of_measurement: str | None,
+        getter: Callable[[CIWHelper], StateType],
+    ):
+        self.entities.extend(
+            [
+                NiceCoverSensor(
+                    slugify(f"{id}_{name}"),
+                    item["tt6_cover"].cover,
+                    item["controller_id"],
+                    f"{item['tt6_cover'].cover.name} {name}",
+                    icon,
+                    unit_of_measurement,
+                    getter,
+                )
+                for id, item in self.api.tt6_covers.items()
+            ]
+        )
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the entities."""
     api: NiceData = hass.data[DOMAIN][config_entry.entry_id]
-    entities = []
-    for sd in CIW_SENSORS:
-        entities.extend(
-            [
-                NiceCIWSensor(
-                    slugify(f"{id}_{sd.name}"),
-                    item["ciw_manager"].get_helper(),
-                    f"{item['name']} {sd.name}",
-                    sd.icon,
-                    sd.unit_of_measurement,
-                    sd.getter,
-                )
-                for id, item in api.ciw_mgrs.items()
-            ]
+    builder: EntityBuilder = EntityBuilder(api)
+
+    config_length_unit = (
+        LENGTH_METERS
+        if api.config_unit_system == CONF_UNIT_SYSTEM_METRIC
+        else LENGTH_INCHES
+    )
+
+    if api.sensor_unit_system == CONF_UNIT_SYSTEM_METRIC:
+        sensor_length_unit = LENGTH_METERS
+        sensor_diagonal_length_unit = (
+            LENGTH_INCHES if api.force_imperial_diagonal else LENGTH_METERS
         )
-    for sd in COVER_SENSORS:
-        entities.extend(
-            [
-                NiceCoverSensor(
-                    slugify(f"{id}_{sd.name}"),
-                    item["tt6_cover"].cover,
-                    item["controller_id"],
-                    f"{item['tt6_cover'].cover.name} {sd.name}",
-                    sd.icon,
-                    sd.unit_of_measurement,
-                    sd.getter,
-                )
-                for id, item in api.tt6_covers.items()
-            ]
-        )
-    async_add_entities(entities)
+        sensor_area_length_unit = LENGTH_METERS
+        sensor_area_unit = AREA_SQUARE_METERS
+    else:
+        sensor_length_unit = LENGTH_INCHES
+        sensor_diagonal_length_unit = LENGTH_INCHES
+        sensor_area_length_unit = LENGTH_FEET
+        sensor_area_unit = "ft²"
+
+    builder.add_ciw_sensors(
+        "Image Height",
+        "mdi:arrow-expand-vertical",
+        sensor_length_unit,
+        lambda ciw_helper: to_target_length_unit(
+            ciw_helper.image_height,
+            config_length_unit,
+            sensor_length_unit,
+        ),
+    )
+    builder.add_ciw_sensors(
+        "Image Width",
+        "mdi:arrow-expand-horizontal",
+        sensor_length_unit,
+        lambda ciw_helper: to_target_length_unit(
+            ciw_helper.image_width,
+            config_length_unit,
+            sensor_length_unit,
+        ),
+    )
+    builder.add_ciw_sensors(
+        "Image Diagonal",
+        "mdi:arrow-top-left-bottom-right",
+        sensor_diagonal_length_unit,
+        lambda ciw_helper: to_target_length_unit(
+            ciw_helper.image_diagonal,
+            config_length_unit,
+            sensor_diagonal_length_unit,
+        ),
+    )
+    builder.add_ciw_sensors(
+        "Image Area",
+        "mdi:arrow-expand-all",
+        sensor_area_unit,
+        lambda ciw_helper: to_target_area_unit(
+            ciw_helper.image_area,
+            config_length_unit,
+            sensor_area_length_unit,
+        ),
+    )
+    builder.add_ciw_sensors(
+        "Aspect Ratio",
+        "mdi:aspect-ratio",
+        None,
+        lambda ciw_helper: ciw_helper.aspect_ratio,
+    )
+    builder.add_cover_sensors(
+        "Drop",
+        "mdi:arrow-collapse-down",
+        sensor_length_unit,
+        lambda cover: to_target_length_unit(
+            cover.drop,
+            config_length_unit,
+            sensor_length_unit,
+        ),
+    )
+    async_add_entities(builder.entities)
 
 
 class NiceCIWSensor(SensorEntity):
@@ -108,7 +175,7 @@ class NiceCIWSensor(SensorEntity):
         helper: CIWHelper,
         name: str,
         icon: str,
-        unit_of_measurement: Union[str, None],
+        unit_of_measurement: str | None,
         getter: Callable[[CIWHelper], StateType],
     ) -> None:
         """A Sensor for a CIWManager property."""
@@ -141,12 +208,12 @@ class NiceCIWSensor(SensorEntity):
         return self._getter(self._helper)
 
     @property
-    def unit_of_measurement(self) -> Union[str, None]:
+    def unit_of_measurement(self) -> str | None:
         """Return the unit of measurement of this entity, if any."""
         return self._unit_of_measurement
 
     @property
-    def icon(self) -> Union[str, None]:
+    def icon(self) -> str | None:
         """Return the icon to use in the frontend, if any."""
         return self._icon
 
@@ -204,12 +271,12 @@ class NiceCoverSensor(SensorEntity):
         return self._getter(self._cover)
 
     @property
-    def unit_of_measurement(self) -> Union[str, None]:
+    def unit_of_measurement(self) -> str | None:
         """Return the unit of measurement of this entity, if any."""
         return self._unit_of_measurement
 
     @property
-    def icon(self) -> Union[str, None]:
+    def icon(self) -> str | None:
         """Return the icon to use in the frontend, if any."""
         return self._icon
 

@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_UNIT_SYSTEM_METRIC
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import (
     RESULT_TYPE_CREATE_ENTRY,
@@ -193,6 +194,7 @@ def no_reload():
 @pytest.fixture
 def config_data():
     return {
+        "unit_system": None,
         "controllers": {},
         "covers": {},
     }
@@ -385,6 +387,11 @@ def config_set_title(config_flow_state_override):
 
 
 @pytest.fixture
+def config_set_unit_system_metric(config_data):
+    config_data["unit_system"] = CONF_UNIT_SYSTEM_METRIC
+
+
+@pytest.fixture
 def config_add_controller_1(config_data):
     config_data["controllers"][CONTROLLER_1_ID] = TEST_CONTROLLER_1
 
@@ -468,7 +475,11 @@ async def test_define(
 ) -> None:
     """Test define step."""
     result = await hass.config_entries.flow.async_configure(
-        config_flow_id, {"title": TEST_TITLE}
+        config_flow_id,
+        {
+            "title": TEST_TITLE,
+            "unit_system": "metric",
+        },
     )
     await hass.async_block_till_done()
 
@@ -478,11 +489,13 @@ async def test_define(
 
     flow = get_flow(hass, config_flow_id)
     assert flow.title == TEST_TITLE
+    assert flow.data["unit_system"] == "metric"
 
 
 async def test_controller_valid_port(
     hass: HomeAssistant,
     config_step_controller,
+    config_set_unit_system_metric,
     config_flow_id,
 ) -> None:
     """Test valid serial port."""
@@ -505,6 +518,7 @@ async def test_controller_valid_port(
 
     flow = get_flow(hass, config_flow_id)
     assert flow.data == {
+        "unit_system": CONF_UNIT_SYSTEM_METRIC,
         "controllers": {CONTROLLER_1_ID: TEST_CONTROLLER_1},
         "covers": {},
     }
@@ -513,6 +527,7 @@ async def test_controller_valid_port(
 async def test_controller_invalid_port(
     hass: HomeAssistant,
     config_step_controller,
+    config_set_unit_system_metric,
     config_flow_id,
 ) -> None:
     """Test invalid serial port."""
@@ -537,6 +552,7 @@ async def test_controller_invalid_port(
 async def test_cover_with_image_area(
     hass: HomeAssistant,
     config_step_cover,
+    config_set_unit_system_metric,
     config_add_controller_1,
     config_flow_id,
 ) -> None:
@@ -563,6 +579,7 @@ async def test_cover_with_image_area(
 async def test_cover_without_image_area(
     hass: HomeAssistant,
     config_step_cover,
+    config_set_unit_system_metric,
     config_add_controller_1,
     config_flow_id,
 ) -> None:
@@ -588,6 +605,7 @@ async def test_cover_without_image_area(
 async def test_image_area(
     hass: HomeAssistant,
     config_step_image_area,
+    config_set_unit_system_metric,
     config_add_controller_1,
     config_add_partial_screen,
     config_flow_id,
@@ -603,10 +621,14 @@ async def test_image_area(
     assert result["type"] == RESULT_TYPE_FORM
     assert result["step_id"] == "finish_cover"
 
+    flow = get_flow(hass, config_flow_id)
+    assert flow.data["covers"][COVER_1_ID] == TEST_SCREEN
+
 
 async def test_invalid_image_area(
     hass: HomeAssistant,
     config_step_image_area,
+    config_set_unit_system_metric,
     config_add_controller_1,
     config_add_partial_screen,
     config_flow_id,
@@ -627,6 +649,7 @@ async def test_finish_cover(
     hass: HomeAssistant,
     config_step_finish_cover,
     config_set_title,
+    config_set_unit_system_metric,
     config_add_controller_1,
     config_add_screen,
     config_flow_id,
@@ -645,6 +668,7 @@ async def test_finish_cover(
     assert result["type"] == RESULT_TYPE_CREATE_ENTRY
     assert result["title"] == TEST_TITLE
     assert result["data"] == {
+        "unit_system": CONF_UNIT_SYSTEM_METRIC,
         "controllers": {CONTROLLER_1_ID: TEST_CONTROLLER_1},
         "covers": {COVER_1_ID: TEST_SCREEN},
     }
@@ -655,6 +679,7 @@ async def test_add_another_cover(
     hass: HomeAssistant,
     config_step_finish_cover,
     config_set_title,
+    config_set_unit_system_metric,
     config_add_controller_1,
     config_add_screen,
     config_flow_id,

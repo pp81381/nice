@@ -13,7 +13,7 @@ The control unit has an RS232 serial connection but is known to work with USB to
 The Integration allows for the control of multiple Covers. There can be one or many control units, each controlling one or many Covers. The following Home Assistant entities are created for each Cover:
 
 - A `cover` entity that can be used to control each Cover
-- A `sensor` entity that represents the drop of the Cover in metres
+- A `sensor` entity that represents the drop of the Cover
 
 ## Presets
 
@@ -25,10 +25,10 @@ The Integration was designed with projector screens in mind and offers some opti
 
 A Cover can optionally have an Image Area defined to represent the screen. An optional helper called a "CIW Manager" can be defined which links a Cover that is a Screen and a Cover that is a Mask. The following `sensor` entities are created for each "CIW Manager":
 
-- Image Height in metres
-- Image Width in metres
-- Image Diagonal in metres
-- Image Area in square metres
+- Image Height
+- Image Width
+- Image Diagonal
+- Image Area
 - Aspect Ratio
 
 The Integration offers a service called [nice.set_aspect_ratio](#niceset_aspect_ratio) which will set the Covers managed by a CIW Manager to a specific Aspect Ratio.
@@ -46,7 +46,14 @@ Add the Integration to Home Assistant as follows:
 
 ## Step 2: Integration Definition
 
-Enter the title of the integration and click Submit
+Enter the details of the Integration:
+
+| Field       | Description                                                                                                                                                                                                                     |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Title       | The title of the integration                                                                                                                                                                                                    |
+| Unit System | The unit system used in the Integration configuration<br>(i.e. to define the dimensions of the Covers and Image Areas in the following steps)<br>Note that the unit system displayed by the sensors can be different if desired |
+
+Click Submit to move to the next step.
 
 ## Step 3: Create Controller(s)
 
@@ -72,7 +79,7 @@ Enter the following details:
 | Controller     | The Controller<br>Select from a drop down list                                                                                                                    |
 | Device Address | The TTBus address of the device<br>Get this from your vendor documentation - as an example, the projector screen might be device 2 and the mask might be device 3 |
 | Device Node    | The TTBus node of the device<br>Again, get this from the documentation - usually 4                                                                                |
-| Drop           | The maximum drop of the Cover in metres                                                                                                                           |
+| Drop           | The maximum drop of the Cover in the unit system specified in the Integration definition                                                                          |
 | Image Area     | Check this box if the Cover is a screen<br>If the Cover has an Image Area then additional details will be collected in the next step                              |
 
 Click on Submit to move to the next step.
@@ -81,11 +88,11 @@ Click on Submit to move to the next step.
 
 If the Cover has an Image Area then enter the following details:
 
-| Field        | Description                                    |
-| ------------ | ---------------------------------------------- |
-| Border Below | Height of the border below the image in metres |
-| Height       | The height of the Image Area in metres         |
-| Aspect Ratio | The Aspect Ratio                               |
+| Field        | Description                                                                                     |
+| ------------ | ----------------------------------------------------------------------------------------------- |
+| Border Below | Height of the border below the image in the unit system specified in the Integration definition |
+| Height       | The height of the Image Area in the unit system specified in the Integration definition         |
+| Aspect Ratio | The Aspect Ratio                                                                                |
 
 Height plus the Border Below cannot be larger than the maximum drop defined in the previous step.
 
@@ -116,13 +123,13 @@ Select an option and click on Submit to move to the next step.
 
 Enter the following details and then click on Submit to create the CIW Manager.
 
-| Field             | Description                                                                                                                                        |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Name              | A friendly name for the Object                                                                                                                     |
-| Screen            | Name of the screen<br>Only Covers with an Image Area can be selected                                                                               |
-| Mask              | Name of the mask<br>Only covers without an image Area can be selected                                                                              |
-| Aspect Ratio Mode | Specifies whether the top, middle or bottom of the resulting image area will be held constant relative to the baseline as the aspect ratio changes |
-| Baseline Drop     | Fixed drop in metres to be used as a baseline when setting the aspect ratio<br>Will be defaulted if left blank                                     |
+| Field             | Description                                                                                                                                                       |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Name              | A friendly name for the Object                                                                                                                                    |
+| Screen            | Name of the screen<br>Only Covers with an Image Area can be selected                                                                                              |
+| Mask              | Name of the mask<br>Only covers without an image Area can be selected                                                                                             |
+| Aspect Ratio Mode | Specifies whether the top, middle or bottom of the resulting image area will be held constant relative to the baseline as the aspect ratio changes                |
+| Baseline Drop     | Fixed drop (in the unit system specified in the Integration definition) to be used as a baseline when setting the aspect ratio<br>Will be defaulted if left blank |
 
 Note that the Baseline Drop field is defaulted/validated as follows:
 
