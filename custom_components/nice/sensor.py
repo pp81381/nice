@@ -43,7 +43,7 @@ class EntityBuilder:
         self,
         name: str,
         icon: str | None,
-        unit_of_measurement: str | None,
+        native_unit_of_measurement: str | None,
         getter: Callable[[CIWHelper], StateType],
     ):
         self.entities.extend(
@@ -53,7 +53,7 @@ class EntityBuilder:
                     item["ciw_manager"].get_helper(),
                     f"{item['name']} {name}",
                     icon,
-                    unit_of_measurement,
+                    native_unit_of_measurement,
                     getter,
                 )
                 for id, item in self.api.ciw_mgrs.items()
@@ -64,7 +64,7 @@ class EntityBuilder:
         self,
         name: str,
         icon: str | None,
-        unit_of_measurement: str | None,
+        native_unit_of_measurement: str | None,
         getter: Callable[[CIWHelper], StateType],
     ):
         self.entities.extend(
@@ -75,7 +75,7 @@ class EntityBuilder:
                     item["controller_id"],
                     f"{item['tt6_cover'].cover.name} {name}",
                     icon,
-                    unit_of_measurement,
+                    native_unit_of_measurement,
                     getter,
                 )
                 for id, item in self.api.tt6_covers.items()
@@ -175,7 +175,7 @@ class NiceCIWSensor(SensorEntity):
         helper: CIWHelper,
         name: str,
         icon: str,
-        unit_of_measurement: str | None,
+        native_unit_of_measurement: str | None,
         getter: Callable[[CIWHelper], StateType],
     ) -> None:
         """A Sensor for a CIWManager property."""
@@ -183,7 +183,7 @@ class NiceCIWSensor(SensorEntity):
         self._helper: CIWHelper = helper
         self._name = name
         self._icon = icon
-        self._unit_of_measurement = unit_of_measurement
+        self._native_unit_of_measurement = native_unit_of_measurement
         self._getter = getter
         self._updater = EntityUpdater(self)
 
@@ -203,14 +203,14 @@ class NiceCIWSensor(SensorEntity):
         return False
 
     @property
-    def state(self) -> StateType:
-        """Return the state of the entity."""
+    def native_value(self) -> StateType:
+        """Return the value of the entity."""
         return self._getter(self._helper)
 
     @property
-    def unit_of_measurement(self) -> str | None:
+    def native_unit_of_measurement(self) -> str | None:
         """Return the unit of measurement of this entity, if any."""
-        return self._unit_of_measurement
+        return self._native_unit_of_measurement
 
     @property
     def icon(self) -> str | None:
@@ -237,7 +237,7 @@ class NiceCoverSensor(SensorEntity):
         controller_id,
         name: str,
         icon: str,
-        unit_of_measurement: str,
+        native_unit_of_measurement: str,
         getter: Callable[[Cover], StateType],
     ) -> None:
         """A Sensor for a Cover property."""
@@ -246,7 +246,7 @@ class NiceCoverSensor(SensorEntity):
         self._controller_id = controller_id
         self._name = name
         self._icon = icon
-        self._unit_of_measurement = unit_of_measurement
+        self._native_unit_of_measurement = native_unit_of_measurement
         self._getter = getter
         self._updater = EntityUpdater(self)
 
@@ -266,14 +266,14 @@ class NiceCoverSensor(SensorEntity):
         return False
 
     @property
-    def state(self) -> StateType:
-        """Return the state of the entity."""
+    def native_value(self) -> StateType:
+        """Return the value of the entity."""
         return self._getter(self._cover)
 
     @property
-    def unit_of_measurement(self) -> str | None:
+    def native_unit_of_measurement(self) -> str | None:
         """Return the unit of measurement of this entity, if any."""
-        return self._unit_of_measurement
+        return self._native_unit_of_measurement
 
     @property
     def icon(self) -> str | None:
