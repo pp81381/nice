@@ -33,6 +33,10 @@ A Cover can optionally have an Image Area defined to represent the screen. An op
 
 The Integration offers a service called [nice.set_aspect_ratio](#niceset_aspect_ratio) which will set the Covers managed by a CIW Manager to a specific Aspect Ratio.
 
+## Sensors
+
+The sensors all round their values to 2 decimal places. They also offer a state variable called `full_precision_value` that is not rounded.
+
 # Initial Configuration
 
 ## Step 1: Add the Integration
