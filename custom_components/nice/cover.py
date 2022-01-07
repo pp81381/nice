@@ -36,10 +36,9 @@ class NiceCover(CoverEntity):
         """Create HA entity representing a cover"""
         self._attr_unique_id = unique_id
         self._tt6_cover = tt6_cover
-        self._controller_id = controller_id
         self._attr_name = str(self._tt6_cover.cover.name)
         self._attr_should_poll = False
-        self._attr_device_info = make_device_info(self._controller_id)
+        self._attr_device_info = make_device_info(controller_id)
         self._updater = EntityUpdater(self.handle_update)
 
     @property

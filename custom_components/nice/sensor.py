@@ -243,11 +243,10 @@ class NiceCoverSensor(SensorEntity):
         """A Sensor for a Cover property."""
         self._attr_unique_id = unique_id
         self._cover: Cover = cover
-        self._controller_id = controller_id
         self._attr_name = name
         self._attr_icon = icon
         self._attr_should_poll = False
-        self._attr_device_info = make_device_info(self._controller_id)
+        self._attr_device_info = make_device_info(controller_id)
         self._native_value: StateType | None = None
         self._native_unit_of_measurement = native_unit_of_measurement
         self._getter = getter
