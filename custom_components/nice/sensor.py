@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable
+from typing import Any, Callable
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.const import (
@@ -18,6 +18,8 @@ from nicett6.cover import Cover
 
 from . import EntityUpdater, NiceData
 from .const import DOMAIN
+
+DECIMAL_PLACES = 2
 
 
 def to_target_length_unit(value, from_length_unit, to_length_unit):
@@ -55,6 +57,7 @@ class EntityBuilder:
                     icon,
                     native_unit_of_measurement,
                     getter,
+                    DECIMAL_PLACES,
                 )
                 for id, item in self.api.ciw_mgrs.items()
             ]
@@ -77,6 +80,7 @@ class EntityBuilder:
                     icon,
                     native_unit_of_measurement,
                     getter,
+                    DECIMAL_PLACES,
                 )
                 for id, item in self.api.tt6_covers.items()
             ]
@@ -177,6 +181,7 @@ class NiceCIWSensor(SensorEntity):
         icon: str,
         native_unit_of_measurement: str | None,
         getter: Callable[[CIWHelper], StateType],
+        decimal_places: float,
     ) -> None:
         """A Sensor for a CIWManager property."""
         self._unique_id = unique_id
@@ -185,6 +190,7 @@ class NiceCIWSensor(SensorEntity):
         self._icon = icon
         self._native_unit_of_measurement = native_unit_of_measurement
         self._getter = getter
+        self._decimal_places = decimal_places
         self._updater = EntityUpdater(self)
 
     @property
@@ -205,12 +211,23 @@ class NiceCIWSensor(SensorEntity):
     @property
     def native_value(self) -> StateType:
         """Return the value of the entity."""
-        return self._getter(self._helper)
+        full_precision_value = self._getter(self._helper)
+        if full_precision_value is None or self._decimal_places is None:
+            return full_precision_value
+        else:
+            return round(full_precision_value, self._decimal_places)
 
     @property
     def native_unit_of_measurement(self) -> str | None:
         """Return the unit of measurement of this entity, if any."""
         return self._native_unit_of_measurement
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the state attributes."""
+        return {
+            "full_precision_value": self._getter(self._helper),
+        }
 
     @property
     def icon(self) -> str | None:
@@ -239,6 +256,7 @@ class NiceCoverSensor(SensorEntity):
         icon: str,
         native_unit_of_measurement: str,
         getter: Callable[[Cover], StateType],
+        decimal_places: float,
     ) -> None:
         """A Sensor for a Cover property."""
         self._unique_id = unique_id
@@ -248,6 +266,7 @@ class NiceCoverSensor(SensorEntity):
         self._icon = icon
         self._native_unit_of_measurement = native_unit_of_measurement
         self._getter = getter
+        self._decimal_places = decimal_places
         self._updater = EntityUpdater(self)
 
     @property
@@ -268,12 +287,23 @@ class NiceCoverSensor(SensorEntity):
     @property
     def native_value(self) -> StateType:
         """Return the value of the entity."""
-        return self._getter(self._cover)
+        full_precision_value = self._getter(self._cover)
+        if full_precision_value is None or self._decimal_places is None:
+            return full_precision_value
+        else:
+            return round(full_precision_value, self._decimal_places)
 
     @property
     def native_unit_of_measurement(self) -> str | None:
         """Return the unit of measurement of this entity, if any."""
         return self._native_unit_of_measurement
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the state attributes."""
+        return {
+            "full_precision_value": self._getter(self._cover),
+        }
 
     @property
     def icon(self) -> str | None:
