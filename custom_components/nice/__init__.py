@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from contextlib import suppress
-from typing import Any
+from typing import Any, Callable
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -162,12 +162,22 @@ class NiceData:
 
 
 class EntityUpdater(AsyncObserver):
-    def __init__(self, entity):
+    def __init__(self, handler: Callable[[], None]):
         super().__init__()
-        self.entity = entity
+        self.handler = handler
 
     async def update(self, observable: AsyncObservable):
-        self.entity.async_schedule_update_ha_state(False)
+        await self.handler()
+
+
+def make_device_info(controller_id):
+    """Return parent device information."""
+    return {
+        "identifiers": {(DOMAIN, controller_id)},
+        "name": f"Nice TT6 ({controller_id})",
+        "manufacturer": "Nice",
+        "model": "TT6 Control Unit",
+    }
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:

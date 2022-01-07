@@ -10,7 +10,7 @@ from homeassistant.components.cover import (
 from homeassistant.util import slugify
 from nicett6.cover import TT6Cover
 
-from . import EntityUpdater, NiceData
+from . import EntityUpdater, NiceData, make_device_info
 from .const import DOMAIN
 
 
@@ -34,25 +34,13 @@ class NiceCover(CoverEntity):
 
     def __init__(self, unique_id, tt6_cover: TT6Cover, controller_id) -> None:
         """Create HA entity representing a cover"""
-        self._controller_id = controller_id
-        self._unique_id = unique_id
+        self._attr_unique_id = unique_id
         self._tt6_cover = tt6_cover
-        self._updater = EntityUpdater(self)
-
-    @property
-    def unique_id(self) -> str:
-        """Unique id"""
-        return self._unique_id
-
-    @property
-    def name(self) -> str:
-        """Name."""
-        return str(self._tt6_cover.cover.name)
-
-    @property
-    def should_poll(self) -> bool:
-        """No need to poll"""
-        return False
+        self._controller_id = controller_id
+        self._attr_name = str(self._tt6_cover.cover.name)
+        self._attr_should_poll = False
+        self._attr_device_info = make_device_info(self._controller_id)
+        self._updater = EntityUpdater(self.handle_update)
 
     @property
     def supported_features(self):
@@ -84,16 +72,6 @@ class NiceCover(CoverEntity):
         """Return the position of the cover from 0 to 100"""
         return round(100.0 - self._tt6_cover.cover.drop_pct * 100.0)
 
-    @property
-    def device_info(self):
-        """Return parent device information."""
-        return {
-            "identifiers": {(DOMAIN, self._controller_id)},
-            "name": f"Nice TT6 ({self._controller_id})",
-            "manufacturer": "Nice",
-            "model": "TT6 Control Unit",
-        }
-
     async def async_open_cover(self, **kwargs) -> None:
         """Open the cover."""
         await self._tt6_cover.send_open_command()
@@ -117,3 +95,6 @@ class NiceCover(CoverEntity):
 
     async def async_will_remove_from_hass(self):
         self._tt6_cover.cover.detach(self._updater)
+
+    async def handle_update(self):
+        self.async_write_ha_state()

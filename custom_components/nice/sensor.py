@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Callable
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.const import (
@@ -16,7 +16,7 @@ from homeassistant.util.distance import convert as convert_length_units
 from nicett6.ciw_helper import CIWHelper
 from nicett6.cover import Cover
 
-from . import EntityUpdater, NiceData
+from . import EntityUpdater, NiceData, make_device_info
 from .const import DOMAIN
 
 DECIMAL_PLACES = 2
@@ -184,55 +184,26 @@ class NiceCIWSensor(SensorEntity):
         decimal_places: float,
     ) -> None:
         """A Sensor for a CIWManager property."""
-        self._unique_id = unique_id
+        self._attr_unique_id = unique_id
         self._helper: CIWHelper = helper
-        self._name = name
-        self._icon = icon
+        self._attr_name = name
+        self._attr_icon = icon
+        self._attr_should_poll = False
+        self._native_value: StateType | None = None
         self._native_unit_of_measurement = native_unit_of_measurement
         self._getter = getter
         self._decimal_places = decimal_places
-        self._updater = EntityUpdater(self)
-
-    @property
-    def unique_id(self) -> str:
-        """Unique id."""
-        return self._unique_id
-
-    @property
-    def name(self) -> str:
-        """Name."""
-        return self._name
-
-    @property
-    def should_poll(self) -> bool:
-        """No need to poll"""
-        return False
+        self._updater = EntityUpdater(self.handle_update)
 
     @property
     def native_value(self) -> StateType:
         """Return the value of the entity."""
-        full_precision_value = self._getter(self._helper)
-        if full_precision_value is None or self._decimal_places is None:
-            return full_precision_value
-        else:
-            return round(full_precision_value, self._decimal_places)
+        return self._native_value
 
     @property
     def native_unit_of_measurement(self) -> str | None:
         """Return the unit of measurement of this entity, if any."""
         return self._native_unit_of_measurement
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return the state attributes."""
-        return {
-            "full_precision_value": self._getter(self._helper),
-        }
-
-    @property
-    def icon(self) -> str | None:
-        """Return the icon to use in the frontend, if any."""
-        return self._icon
 
     async def async_added_to_hass(self):
         """Register device notification."""
@@ -242,6 +213,17 @@ class NiceCIWSensor(SensorEntity):
     async def async_will_remove_from_hass(self):
         self._helper.screen.detach(self._updater)
         self._helper.mask.detach(self._updater)
+
+    async def handle_update(self):
+        full_precision_value = self._getter(self._helper)
+        if full_precision_value is None or self._decimal_places is None:
+            self._native_value = full_precision_value
+        else:
+            self._native_value = round(full_precision_value, self._decimal_places)
+        self._attr_extra_state_attributes = {
+            "full_precision_value": full_precision_value,
+        }
+        self.async_write_ha_state()
 
 
 class NiceCoverSensor(SensorEntity):
@@ -259,66 +241,28 @@ class NiceCoverSensor(SensorEntity):
         decimal_places: float,
     ) -> None:
         """A Sensor for a Cover property."""
-        self._unique_id = unique_id
+        self._attr_unique_id = unique_id
         self._cover: Cover = cover
         self._controller_id = controller_id
-        self._name = name
-        self._icon = icon
+        self._attr_name = name
+        self._attr_icon = icon
+        self._attr_should_poll = False
+        self._attr_device_info = make_device_info(self._controller_id)
+        self._native_value: StateType | None = None
         self._native_unit_of_measurement = native_unit_of_measurement
         self._getter = getter
         self._decimal_places = decimal_places
-        self._updater = EntityUpdater(self)
-
-    @property
-    def unique_id(self) -> str:
-        """Unique id."""
-        return self._unique_id
-
-    @property
-    def name(self) -> str:
-        """Name."""
-        return self._name
-
-    @property
-    def should_poll(self) -> bool:
-        """No need to poll"""
-        return False
+        self._updater = EntityUpdater(self.handle_update)
 
     @property
     def native_value(self) -> StateType:
         """Return the value of the entity."""
-        full_precision_value = self._getter(self._cover)
-        if full_precision_value is None or self._decimal_places is None:
-            return full_precision_value
-        else:
-            return round(full_precision_value, self._decimal_places)
+        return self._native_value
 
     @property
     def native_unit_of_measurement(self) -> str | None:
         """Return the unit of measurement of this entity, if any."""
         return self._native_unit_of_measurement
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return the state attributes."""
-        return {
-            "full_precision_value": self._getter(self._cover),
-        }
-
-    @property
-    def icon(self) -> str | None:
-        """Return the icon to use in the frontend, if any."""
-        return self._icon
-
-    @property
-    def device_info(self):
-        """Return parent device information."""
-        return {
-            "identifiers": {(DOMAIN, self._controller_id)},
-            "name": f"Nice TT6 ({self._controller_id})",
-            "manufacturer": "Nice",
-            "model": "TT6 Control Unit",
-        }
 
     async def async_added_to_hass(self):
         """Register device notification."""
@@ -326,3 +270,14 @@ class NiceCoverSensor(SensorEntity):
 
     async def async_will_remove_from_hass(self):
         self._cover.detach(self._updater)
+
+    async def handle_update(self):
+        full_precision_value = self._getter(self._cover)
+        if full_precision_value is None or self._decimal_places is None:
+            self._native_value = full_precision_value
+        else:
+            self._native_value = round(full_precision_value, self._decimal_places)
+        self._attr_extra_state_attributes = {
+            "full_precision_value": full_precision_value,
+        }
+        self.async_write_ha_state()
