@@ -1311,7 +1311,7 @@ async def test_del_preset(
     }
 
 
-async def test_sensor_prefs(
+async def test_sensor_prefs_no_decimals(
     hass: HomeAssistant,
     options_step_sensor_prefs,
     config_add_controller_1,
@@ -1335,4 +1335,42 @@ async def test_sensor_prefs(
         "ciw_managers": {},
         "presets": {},
         "sensor_prefs": {"unit_system": "metric", "force_diagonal_imperial": True},
+    }
+
+
+async def test_sensor_prefs_with_decimals(
+    hass: HomeAssistant,
+    options_step_sensor_prefs,
+    config_add_controller_1,
+    config_add_screen,
+    config_add_mask,
+    options_flow_id,
+) -> None:
+    """Test Sensor Preferences action."""
+    result = await hass.config_entries.options.async_configure(
+        options_flow_id,
+        user_input={
+            "unit_system": "metric",
+            "force_diagonal_imperial": True,
+            "dimensions_decimal_places": 1,
+            "diagonal_decimal_places": 2,
+            "area_decimal_places": 3,
+            "ratio_decimal_places": 4,
+        },
+    )
+
+    assert result["type"] == RESULT_TYPE_CREATE_ENTRY
+    assert result["title"] == ""
+    assert result["result"] is True
+    assert result["data"] == {
+        "ciw_managers": {},
+        "presets": {},
+        "sensor_prefs": {
+            "unit_system": "metric",
+            "force_diagonal_imperial": True,
+            "dimensions_decimal_places": 1,
+            "diagonal_decimal_places": 2,
+            "area_decimal_places": 3,
+            "ratio_decimal_places": 4,
+        },
     }

@@ -41,6 +41,7 @@ from .const import (
     CONF_ACTION,
     CONF_ADD_ANOTHER,
     CONF_ADDRESS,
+    CONF_AREA_DECIMAL_PLACES,
     CONF_ASPECT_RATIO_MODE,
     CONF_BASELINE_DROP,
     CONF_CIW_MANAGERS,
@@ -48,6 +49,8 @@ from .const import (
     CONF_CONTROLLERS,
     CONF_COVER,
     CONF_COVERS,
+    CONF_DIAGONAL_DECIMAL_PLACES,
+    CONF_DIMENSIONS_DECIMAL_PLACES,
     CONF_DROP,
     CONF_DROPS,
     CONF_FORCE_DIAGONAL_IMPERIAL,
@@ -60,6 +63,7 @@ from .const import (
     CONF_MASK_COVER,
     CONF_NODE,
     CONF_PRESETS,
+    CONF_RATIO_DECIMAL_PLACES,
     CONF_SCREEN_COVER,
     CONF_SELECT,
     CONF_SENSOR_PREFS,
@@ -604,31 +608,60 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         errors = {}
 
         if user_input is not None:
+            wanted_keys = [
+                CONF_UNIT_SYSTEM,
+                CONF_FORCE_DIAGONAL_IMPERIAL,
+                CONF_DIMENSIONS_DECIMAL_PLACES,
+                CONF_DIAGONAL_DECIMAL_PLACES,
+                CONF_AREA_DECIMAL_PLACES,
+                CONF_RATIO_DECIMAL_PLACES,
+            ]
             self.data[CONF_SENSOR_PREFS] = {
-                CONF_UNIT_SYSTEM: user_input[CONF_UNIT_SYSTEM],
-                CONF_FORCE_DIAGONAL_IMPERIAL: user_input[CONF_FORCE_DIAGONAL_IMPERIAL],
+                k: user_input[k] for k in wanted_keys if k in user_input
             }
             return self.async_create_entry(title="", data=self.data)
 
         sensor_prefs = self.data[CONF_SENSOR_PREFS]
-        default_unit_system = sensor_prefs.get(
+        current_unit_system = sensor_prefs.get(
             CONF_UNIT_SYSTEM,
             self.config_entry.data[CONF_UNIT_SYSTEM],
         )
-        default_force_diagonal_imperial = sensor_prefs.get(
+        current_force_diagonal_imperial = sensor_prefs.get(
             CONF_FORCE_DIAGONAL_IMPERIAL, False
         )
+        current_dimensions_decimal_places = sensor_prefs.get(
+            CONF_DIMENSIONS_DECIMAL_PLACES
+        )
+        current_diagonal_decimal_places = sensor_prefs.get(CONF_DIAGONAL_DECIMAL_PLACES)
+        current_area_decimal_places = sensor_prefs.get(CONF_AREA_DECIMAL_PLACES)
+        current_ratio_decimal_places = sensor_prefs.get(CONF_RATIO_DECIMAL_PLACES)
 
         data_schema = vol.Schema(
             {
                 vol.Required(
                     CONF_UNIT_SYSTEM,
-                    default=default_unit_system,
+                    description={"suggested_value": current_unit_system},
                 ): vol.In(UNIT_SYSTEMS),
                 vol.Required(
                     CONF_FORCE_DIAGONAL_IMPERIAL,
-                    default=default_force_diagonal_imperial,
+                    description={"suggested_value": current_force_diagonal_imperial},
                 ): bool,
+                vol.Optional(
+                    CONF_DIMENSIONS_DECIMAL_PLACES,
+                    description={"suggested_value": current_dimensions_decimal_places},
+                ): vol.All(vol.Coerce(int), vol.Range(min=0)),
+                vol.Optional(
+                    CONF_DIAGONAL_DECIMAL_PLACES,
+                    description={"suggested_value": current_diagonal_decimal_places},
+                ): vol.All(vol.Coerce(int), vol.Range(min=0)),
+                vol.Optional(
+                    CONF_AREA_DECIMAL_PLACES,
+                    description={"suggested_value": current_area_decimal_places},
+                ): vol.All(vol.Coerce(int), vol.Range(min=0)),
+                vol.Optional(
+                    CONF_RATIO_DECIMAL_PLACES,
+                    description={"suggested_value": current_ratio_decimal_places},
+                ): vol.All(vol.Coerce(int), vol.Range(min=0)),
             }
         )
 

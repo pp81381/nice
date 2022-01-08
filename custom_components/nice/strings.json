@@ -114,7 +114,11 @@
         "description": "Define preferences for the CIW and Cover sensors",
         "data": {
           "unit_system": "Sensor Unit System",
-          "force_diagonal_imperial": "Force the Diagonal sensors to display in inches regardless of unit system"
+          "force_diagonal_imperial": "Force the Diagonal sensors to display in inches regardless of unit system",
+          "dimensions_decimal_places": "Decimal places for dimensions (Height, Width, Drop)",
+          "diagonal_decimal_places": "Decimal places for diagonals",
+          "area_decimal_places": "Decimal places for areas",
+          "ratio_decimal_places": "Decimal places for ratios"
         }
       }
     },
