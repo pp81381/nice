@@ -189,21 +189,10 @@ class NiceCIWSensor(SensorEntity):
         self._attr_name = name
         self._attr_icon = icon
         self._attr_should_poll = False
-        self._native_value: StateType | None = None
-        self._native_unit_of_measurement = native_unit_of_measurement
+        self._attr_native_unit_of_measurement = native_unit_of_measurement
         self._getter = getter
         self._decimal_places = decimal_places
         self._updater = EntityUpdater(self.handle_update)
-
-    @property
-    def native_value(self) -> StateType:
-        """Return the value of the entity."""
-        return self._native_value
-
-    @property
-    def native_unit_of_measurement(self) -> str | None:
-        """Return the unit of measurement of this entity, if any."""
-        return self._native_unit_of_measurement
 
     async def async_added_to_hass(self):
         """Register device notification."""
@@ -217,9 +206,9 @@ class NiceCIWSensor(SensorEntity):
     async def handle_update(self):
         full_precision_value = self._getter(self._helper)
         if full_precision_value is None or self._decimal_places is None:
-            self._native_value = full_precision_value
+            self._attr_native_value = full_precision_value
         else:
-            self._native_value = round(full_precision_value, self._decimal_places)
+            self._attr_native_value = round(full_precision_value, self._decimal_places)
         self._attr_extra_state_attributes = {
             "full_precision_value": full_precision_value,
         }
@@ -247,21 +236,10 @@ class NiceCoverSensor(SensorEntity):
         self._attr_icon = icon
         self._attr_should_poll = False
         self._attr_device_info = make_device_info(controller_id)
-        self._native_value: StateType | None = None
-        self._native_unit_of_measurement = native_unit_of_measurement
+        self._attr_native_unit_of_measurement = native_unit_of_measurement
         self._getter = getter
         self._decimal_places = decimal_places
         self._updater = EntityUpdater(self.handle_update)
-
-    @property
-    def native_value(self) -> StateType:
-        """Return the value of the entity."""
-        return self._native_value
-
-    @property
-    def native_unit_of_measurement(self) -> str | None:
-        """Return the unit of measurement of this entity, if any."""
-        return self._native_unit_of_measurement
 
     async def async_added_to_hass(self):
         """Register device notification."""
@@ -273,9 +251,9 @@ class NiceCoverSensor(SensorEntity):
     async def handle_update(self):
         full_precision_value = self._getter(self._cover)
         if full_precision_value is None or self._decimal_places is None:
-            self._native_value = full_precision_value
+            self._attr_native_value = full_precision_value
         else:
-            self._native_value = round(full_precision_value, self._decimal_places)
+            self._attr_native_value = round(full_precision_value, self._decimal_places)
         self._attr_extra_state_attributes = {
             "full_precision_value": full_precision_value,
         }
