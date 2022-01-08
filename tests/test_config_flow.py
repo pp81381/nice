@@ -204,11 +204,7 @@ def config_data():
 
 @pytest.fixture
 def options_data():
-    return {
-        "ciw_managers": {},
-        "presets": {},
-        "sensor_prefs": {},
-    }
+    return {}
 
 
 @pytest.fixture
@@ -421,30 +417,46 @@ def config_add_mask(config_data):
 
 
 @pytest.fixture
-def options_add_ciw_1(options_data):
-    options_data["ciw_managers"][CIW_1_ID] = TEST_CIW_MANAGER_1
+def options_flow_data(options_data):
+    options_data.update(
+        {
+            "ciw_managers": {},
+            "presets": {},
+            "sensor_prefs": {},
+        }
+    )
+    return options_data
 
 
 @pytest.fixture
-def options_add_preset_1(options_data):
-    options_data["presets"][PRESET_1_ID] = TEST_PRESET_1
+def options_add_ciw_1(options_flow_data):
+    options_flow_data["ciw_managers"][CIW_1_ID] = TEST_CIW_MANAGER_1
 
 
 @pytest.fixture
-def options_add_partial_preset_1_no_drops(options_data, options_flow_state_override):
-    options_data["presets"][PRESET_1_ID] = TEST_PARTIAL_PRESET_1_NO_DROPS
+def options_add_preset_1(options_flow_data):
+    options_flow_data["presets"][PRESET_1_ID] = TEST_PRESET_1
+
+
+@pytest.fixture
+def options_add_partial_preset_1_no_drops(
+    options_flow_data, options_flow_state_override
+):
+    options_flow_data["presets"][PRESET_1_ID] = TEST_PARTIAL_PRESET_1_NO_DROPS
     options_flow_state_override["tmp_preset_id"] = PRESET_1_ID
 
 
 @pytest.fixture
-def options_add_partial_preset_1_one_drop(options_data, options_flow_state_override):
-    options_data["presets"][PRESET_1_ID] = TEST_PARTIAL_PRESET_1_ONE_DROP
+def options_add_partial_preset_1_one_drop(
+    options_flow_data, options_flow_state_override
+):
+    options_flow_data["presets"][PRESET_1_ID] = TEST_PARTIAL_PRESET_1_ONE_DROP
     options_flow_state_override["tmp_preset_id"] = PRESET_1_ID
 
 
 @pytest.fixture
-def options_add_preset_2(options_data):
-    options_data["presets"][PRESET_2_ID] = TEST_PRESET_2
+def options_add_preset_2(options_flow_data):
+    options_flow_data["presets"][PRESET_2_ID] = TEST_PRESET_2
 
 
 @pytest.fixture
