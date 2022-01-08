@@ -10,10 +10,14 @@ The control unit has an RS232 serial connection but is known to work with USB to
 
 ## Covers
 
-The Integration allows for the control of multiple Covers. There can be one or many control units, each controlling one or many Covers. The following Home Assistant entities are created for each Cover:
+The Integration allows for the control of multiple Covers. There can be one or many control units, each controlling one or many Covers.
+
+The following Home Assistant entities are created for each Cover:
 
 - A `cover` entity that can be used to control each Cover
 - A `sensor` entity that represents the drop of the Cover
+
+The Integration offers a service called [nice.set_drop_percent](#niceset_drop_percent) which will set the drop percentage to greater precision than the standard `cover.set_cover_position` service.
 
 ## Presets
 
@@ -180,6 +184,10 @@ Takes the name of the Preset as the argument
 Takes the name of the CIW Manager and the desired aspect ratio as parameters.
 
 The CIW Manager will move the screen and mask to achieve the requested aspect ratio. The CIW manager uses two internal parameters, the mode and the baseline_drop, to determine the positions of the screen and mask. The baseline_drop is a fixed drop to be used as a baseline. The mode specifies whether the top, middle or bottom of the resulting image area will be held constant relative to the baseline.
+
+## nice.set_drop_percent
+
+Takes a Cover entity and the percentage drop as parameters. This service will set the drop to an accuracy of up to 0.1% as opposed to the `cover.set_current_position` service which uses an `int` to specify the position.
 
 # Emulator
 
