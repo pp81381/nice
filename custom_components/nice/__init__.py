@@ -192,14 +192,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     nd = NiceData()
 
     nd.config_unit_system = entry.data[CONF_UNIT_SYSTEM]
-    nd.sensor_unit_system = entry.options[CONF_SENSOR_PREFS].get(
-        CONF_UNIT_SYSTEM,
-        nd.config_unit_system,
-    )
-    nd.force_imperial_diagonal = entry.options[CONF_SENSOR_PREFS].get(
-        CONF_FORCE_DIAGONAL_IMPERIAL,
-        False,
-    )
+
+    if CONF_SENSOR_PREFS in entry.options:
+        nd.sensor_unit_system = entry.options[CONF_SENSOR_PREFS].get(
+            CONF_UNIT_SYSTEM,
+            nd.config_unit_system,
+        )
+        nd.force_imperial_diagonal = entry.options[CONF_SENSOR_PREFS].get(
+            CONF_FORCE_DIAGONAL_IMPERIAL,
+            False,
+        )
 
     for controller_id, controller_config in entry.data[CONF_CONTROLLERS].items():
         await nd.add_controller(hass, controller_id, controller_config)
