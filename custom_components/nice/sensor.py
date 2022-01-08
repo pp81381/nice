@@ -19,8 +19,6 @@ from nicett6.cover import Cover
 from . import EntityUpdater, NiceData, make_device_info
 from .const import DOMAIN
 
-DECIMAL_PLACES = 2
-
 
 def to_target_length_unit(value, from_length_unit, to_length_unit):
     if value is None:
@@ -37,8 +35,8 @@ def to_target_area_unit(value, from_length_unit, to_length_unit):
 
 
 class EntityBuilder:
-    def __init__(self, api: NiceData) -> None:
-        self.api = api
+    def __init__(self, data: NiceData) -> None:
+        self.data = data
         self.entities: list[NiceCIWSensor | NiceCoverSensor] = []
 
     def add_ciw_sensors(
@@ -46,6 +44,7 @@ class EntityBuilder:
         name: str,
         icon: str | None,
         native_unit_of_measurement: str | None,
+        decimal_places: int | None,
         getter: Callable[[CIWHelper], StateType],
     ):
         self.entities.extend(
@@ -57,9 +56,9 @@ class EntityBuilder:
                     icon,
                     native_unit_of_measurement,
                     getter,
-                    DECIMAL_PLACES,
+                    decimal_places,
                 )
-                for id, item in self.api.ciw_mgrs.items()
+                for id, item in self.data.ciw_mgrs.items()
             ]
         )
 
@@ -68,6 +67,7 @@ class EntityBuilder:
         name: str,
         icon: str | None,
         native_unit_of_measurement: str | None,
+        decimal_places: int | None,
         getter: Callable[[CIWHelper], StateType],
     ):
         self.entities.extend(
@@ -80,28 +80,28 @@ class EntityBuilder:
                     icon,
                     native_unit_of_measurement,
                     getter,
-                    DECIMAL_PLACES,
+                    decimal_places,
                 )
-                for id, item in self.api.tt6_covers.items()
+                for id, item in self.data.tt6_covers.items()
             ]
         )
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the entities."""
-    api: NiceData = hass.data[DOMAIN][config_entry.entry_id]
-    builder: EntityBuilder = EntityBuilder(api)
+    data: NiceData = hass.data[DOMAIN][config_entry.entry_id]
+    builder: EntityBuilder = EntityBuilder(data)
 
     config_length_unit = (
         LENGTH_METERS
-        if api.config_unit_system == CONF_UNIT_SYSTEM_METRIC
+        if data.config_unit_system == CONF_UNIT_SYSTEM_METRIC
         else LENGTH_INCHES
     )
 
-    if api.sensor_unit_system == CONF_UNIT_SYSTEM_METRIC:
+    if data.sensor_unit_system == CONF_UNIT_SYSTEM_METRIC:
         sensor_length_unit = LENGTH_METERS
         sensor_diagonal_length_unit = (
-            LENGTH_INCHES if api.force_imperial_diagonal else LENGTH_METERS
+            LENGTH_INCHES if data.force_imperial_diagonal else LENGTH_METERS
         )
         sensor_area_length_unit = LENGTH_METERS
         sensor_area_unit = AREA_SQUARE_METERS
@@ -115,6 +115,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         "Image Height",
         "mdi:arrow-expand-vertical",
         sensor_length_unit,
+        data.dimensions_decimal_places,
         lambda ciw_helper: to_target_length_unit(
             ciw_helper.image_height,
             config_length_unit,
@@ -125,6 +126,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         "Image Width",
         "mdi:arrow-expand-horizontal",
         sensor_length_unit,
+        data.dimensions_decimal_places,
         lambda ciw_helper: to_target_length_unit(
             ciw_helper.image_width,
             config_length_unit,
@@ -135,6 +137,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         "Image Diagonal",
         "mdi:arrow-top-left-bottom-right",
         sensor_diagonal_length_unit,
+        data.diagonal_decimal_places,
         lambda ciw_helper: to_target_length_unit(
             ciw_helper.image_diagonal,
             config_length_unit,
@@ -145,6 +148,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         "Image Area",
         "mdi:arrow-expand-all",
         sensor_area_unit,
+        data.area_decimal_places,
         lambda ciw_helper: to_target_area_unit(
             ciw_helper.image_area,
             config_length_unit,
@@ -155,12 +159,14 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         "Aspect Ratio",
         "mdi:aspect-ratio",
         ":1",
+        data.ratio_decimal_places,
         lambda ciw_helper: ciw_helper.aspect_ratio,
     )
     builder.add_cover_sensors(
         "Drop",
         "mdi:arrow-collapse-down",
         sensor_length_unit,
+        data.dimensions_decimal_places,
         lambda cover: to_target_length_unit(
             cover.drop,
             config_length_unit,
@@ -181,7 +187,7 @@ class NiceCIWSensor(SensorEntity):
         icon: str,
         native_unit_of_measurement: str | None,
         getter: Callable[[CIWHelper], StateType],
-        decimal_places: float,
+        decimal_places: float | None,
     ) -> None:
         """A Sensor for a CIWManager property."""
         self._attr_unique_id = unique_id
@@ -227,7 +233,7 @@ class NiceCoverSensor(SensorEntity):
         icon: str,
         native_unit_of_measurement: str,
         getter: Callable[[Cover], StateType],
-        decimal_places: float,
+        decimal_places: float | None,
     ) -> None:
         """A Sensor for a Cover property."""
         self._attr_unique_id = unique_id

@@ -29,6 +29,10 @@ CONF_COVER = "cover"
 CONF_DROPS = "drops"
 CONF_ASPECT_RATIO = "aspect_ratio"
 CONF_FORCE_DIAGONAL_IMPERIAL = "force_diagonal_imperial"
+CONF_DIMENSIONS_DECIMAL_PLACES = "dimensions_decimal_places"
+CONF_DIAGONAL_DECIMAL_PLACES = "diagonal_decimal_places"
+CONF_AREA_DECIMAL_PLACES = "area_decimal_places"
+CONF_RATIO_DECIMAL_PLACES = "ratio_decimal_places"
 
 CHOICE_ASPECT_RATIO_16_9 = "aspect_ratio_16_9"
 CHOICE_ASPECT_RATIO_2_35_1 = "aspect_ratio_2_35_1"
@@ -44,3 +48,8 @@ ACTION_DEL_CIW = "Delete CIW Manager(s)"
 ACTION_ADD_PRESET = "Add Preset"
 ACTION_DEL_PRESET = "Delete Preset(s)"
 ACTION_SENSOR_PREFS = "Sensor Preferences"
+
+DEFAULT_DIMENSIONS_DECIMAL_PLACES = 3
+DEFAULT_DIAGONAL_DECIMAL_PLACES = 3
+DEFAULT_AREA_DECIMAL_PLACES = 1
+DEFAULT_RATIO_DECIMAL_PLACES = 2

@@ -23,11 +23,12 @@ from nicett6.ttbus_device import TTBusDeviceAddress
 from nicett6.utils import AsyncObservable, AsyncObserver
 
 from .const import (
-    CHOICE_ASPECT_RATIO_16_9,
     CHOICE_ASPECT_RATIO_2_35_1,
     CHOICE_ASPECT_RATIO_4_3,
+    CHOICE_ASPECT_RATIO_16_9,
     CHOICE_ASPECT_RATIO_OTHER,
     CONF_ADDRESS,
+    CONF_AREA_DECIMAL_PLACES,
     CONF_ASPECT_RATIO,
     CONF_ASPECT_RATIO_MODE,
     CONF_BASELINE_DROP,
@@ -36,6 +37,8 @@ from .const import (
     CONF_CONTROLLERS,
     CONF_COVER,
     CONF_COVERS,
+    CONF_DIAGONAL_DECIMAL_PLACES,
+    CONF_DIMENSIONS_DECIMAL_PLACES,
     CONF_DROP,
     CONF_DROPS,
     CONF_FORCE_DIAGONAL_IMPERIAL,
@@ -47,9 +50,14 @@ from .const import (
     CONF_MASK_COVER,
     CONF_NODE,
     CONF_PRESETS,
+    CONF_RATIO_DECIMAL_PLACES,
     CONF_SCREEN_COVER,
     CONF_SENSOR_PREFS,
     CONF_SERIAL_PORT,
+    DEFAULT_AREA_DECIMAL_PLACES,
+    DEFAULT_DIAGONAL_DECIMAL_PLACES,
+    DEFAULT_DIMENSIONS_DECIMAL_PLACES,
+    DEFAULT_RATIO_DECIMAL_PLACES,
     DOMAIN,
     SERVICE_APPLY_PRESET,
     SERVICE_SET_ASPECT_RATIO,
@@ -137,13 +145,30 @@ def image_def_from_config(config):
 
 
 class NiceData:
-    def __init__(self):
-        self.config_unit_system: str = None
+    def __init__(self, config_unit_system: str):
+        self.config_unit_system: str = config_unit_system
         self.controllers: dict[str, CoverManager] = {}
         self.tt6_covers: dict[str, dict[str, Any]] = {}
         self.ciw_mgrs: dict[str, CIWManager] = {}
         self.force_imperial_diagonal: bool = False
         self.sensor_unit_system: str = CONF_UNIT_SYSTEM_METRIC
+        self._decimal_places = {}
+
+    @property
+    def dimensions_decimal_places(self) -> int:
+        return self._decimal_places[CONF_DIMENSIONS_DECIMAL_PLACES]
+
+    @property
+    def diagonal_decimal_places(self) -> int:
+        return self._decimal_places[CONF_DIAGONAL_DECIMAL_PLACES]
+
+    @property
+    def area_decimal_places(self) -> int:
+        return self._decimal_places[CONF_AREA_DECIMAL_PLACES]
+
+    @property
+    def ratio_decimal_places(self) -> int:
+        return self._decimal_places[CONF_RATIO_DECIMAL_PLACES]
 
     async def add_controller(self, hass, id, config):
         controller = NiceControllerWrapper(config[CONF_NAME])
@@ -174,12 +199,54 @@ class NiceData:
             "baseline_drop": config[CONF_BASELINE_DROP],
         }
 
+    def set_sensor_prefs(self, sensor_prefs):
+        self.sensor_unit_system = sensor_prefs.get(
+            CONF_UNIT_SYSTEM,
+            self.config_unit_system,
+        )
+        self.force_imperial_diagonal = sensor_prefs.get(
+            CONF_FORCE_DIAGONAL_IMPERIAL,
+            False,
+        )
+        self._decimal_places[CONF_DIMENSIONS_DECIMAL_PLACES] = sensor_prefs.get(
+            CONF_DIMENSIONS_DECIMAL_PLACES, DEFAULT_DIMENSIONS_DECIMAL_PLACES
+        )
+        self._decimal_places[CONF_DIAGONAL_DECIMAL_PLACES] = sensor_prefs.get(
+            CONF_DIAGONAL_DECIMAL_PLACES, DEFAULT_DIAGONAL_DECIMAL_PLACES
+        )
+        self._decimal_places[CONF_AREA_DECIMAL_PLACES] = sensor_prefs.get(
+            CONF_AREA_DECIMAL_PLACES, DEFAULT_AREA_DECIMAL_PLACES
+        )
+        self._decimal_places[CONF_RATIO_DECIMAL_PLACES] = sensor_prefs.get(
+            CONF_RATIO_DECIMAL_PLACES, DEFAULT_RATIO_DECIMAL_PLACES
+        )
+
     async def close(self):
         self.ciw_mgrs = {}
         self.tt6_covers = {}
         for controller in self.controllers.values():
             await controller.close()
         self.controllers = {}
+
+
+async def make_nice_data(hass: HomeAssistant, entry: ConfigEntry) -> NiceData:
+    """Factory for NiceData object"""
+    data = NiceData(entry.data[CONF_UNIT_SYSTEM])
+
+    for controller_id, controller_config in entry.data[CONF_CONTROLLERS].items():
+        await data.add_controller(hass, controller_id, controller_config)
+
+    for cover_id, cover_config in entry.data[CONF_COVERS].items():
+        await data.add_cover(cover_id, cover_config)
+
+    if CONF_CIW_MANAGERS in entry.options:
+        for ciw_id, ciw_config in entry.options[CONF_CIW_MANAGERS].items():
+            data.add_ciw_manager(ciw_id, ciw_config)
+
+    if CONF_SENSOR_PREFS in entry.options:
+        data.set_sensor_prefs(entry.options[CONF_SENSOR_PREFS])
+
+    return data
 
 
 class EntityUpdater(AsyncObserver):
@@ -210,29 +277,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Nice from a config entry."""
     _LOGGER.debug("nice async_setup_entry")
 
-    nd = NiceData()
-
-    nd.config_unit_system = entry.data[CONF_UNIT_SYSTEM]
-
-    if CONF_SENSOR_PREFS in entry.options:
-        nd.sensor_unit_system = entry.options[CONF_SENSOR_PREFS].get(
-            CONF_UNIT_SYSTEM,
-            nd.config_unit_system,
-        )
-        nd.force_imperial_diagonal = entry.options[CONF_SENSOR_PREFS].get(
-            CONF_FORCE_DIAGONAL_IMPERIAL,
-            False,
-        )
-
-    for controller_id, controller_config in entry.data[CONF_CONTROLLERS].items():
-        await nd.add_controller(hass, controller_id, controller_config)
-
-    for cover_id, cover_config in entry.data[CONF_COVERS].items():
-        await nd.add_cover(cover_id, cover_config)
-
-    if CONF_CIW_MANAGERS in entry.options:
-        for ciw_id, ciw_config in entry.options[CONF_CIW_MANAGERS].items():
-            nd.add_ciw_manager(ciw_id, ciw_config)
+    nd = await make_nice_data(hass, entry)
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = nd

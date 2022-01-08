@@ -1,3 +1,4 @@
+import voluptuous as vol
 from homeassistant.components.cover import (
     ATTR_POSITION,
     DEVICE_CLASS_SHADE,
@@ -10,7 +11,6 @@ from homeassistant.components.cover import (
 from homeassistant.helpers import entity_platform
 from homeassistant.util import slugify
 from nicett6.cover import TT6Cover
-import voluptuous as vol
 
 from . import EntityUpdater, NiceData, make_device_info
 from .const import DOMAIN, SERVICE_SET_DROP_PERCENT
@@ -18,7 +18,7 @@ from .const import DOMAIN, SERVICE_SET_DROP_PERCENT
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the cover(s)"""
-    api: NiceData = hass.data[DOMAIN][config_entry.entry_id]
+    data: NiceData = hass.data[DOMAIN][config_entry.entry_id]
 
     entities = [
         NiceCover(
@@ -26,7 +26,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             item["tt6_cover"],
             item["controller_id"],
         )
-        for id, item in api.tt6_covers.items()
+        for id, item in data.tt6_covers.items()
     ]
     async_add_entities(entities)
 

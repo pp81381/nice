@@ -24,7 +24,7 @@ from homeassistant.helpers.entity_registry import (
 from homeassistant.util import slugify
 from nicett6.ciw_manager import check_baseline_drop
 from nicett6.connection import open_connection
-from nicett6.utils import MIN_ASPECT_RATIO, MAX_ASPECT_RATIO
+from nicett6.utils import MAX_ASPECT_RATIO, MIN_ASPECT_RATIO
 from serial import SerialException
 
 from . import CIW_ASPECT_RATIO_MODE_MAP, image_def_from_config
@@ -34,9 +34,9 @@ from .const import (
     ACTION_DEL_CIW,
     ACTION_DEL_PRESET,
     ACTION_SENSOR_PREFS,
-    CHOICE_ASPECT_RATIO_16_9,
     CHOICE_ASPECT_RATIO_2_35_1,
     CHOICE_ASPECT_RATIO_4_3,
+    CHOICE_ASPECT_RATIO_16_9,
     CHOICE_ASPECT_RATIO_OTHER,
     CONF_ACTION,
     CONF_ADD_ANOTHER,
