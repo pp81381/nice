@@ -434,7 +434,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 }
                 return self.async_create_entry(title="", data=self.data)
             else:
-                errors["base"] = "invalid_baseline_drop"
+                errors[CONF_BASELINE_DROP] = "invalid_baseline_drop"
 
         next_num = len(self.data[CONF_CIW_MANAGERS]) + 1
 
@@ -498,7 +498,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             self.tmp_drops_to_define = user_input[CONF_SELECT]
             if len(self.tmp_drops_to_define) == 0:
-                errors["base"] = "no_covers_selected"
+                errors[CONF_SELECT] = "no_covers_selected"
             else:
                 self.tmp_preset_id = make_id()
                 self.data[CONF_PRESETS][self.tmp_preset_id] = {
