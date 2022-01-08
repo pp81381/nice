@@ -154,7 +154,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     builder.add_ciw_sensors(
         "Aspect Ratio",
         "mdi:aspect-ratio",
-        None,
+        ":1",
         lambda ciw_helper: ciw_helper.aspect_ratio,
     )
     builder.add_cover_sensors(
