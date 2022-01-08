@@ -1104,7 +1104,7 @@ async def test_add_ciw_with_invalid_baseline_drop(
             },
         )
 
-    assert result["errors"] == {"base": "invalid_baseline_drop"}
+    assert result["errors"] == {"baseline_drop": "invalid_baseline_drop"}
     assert result["type"] == RESULT_TYPE_FORM
     assert result["step_id"] == "add_ciw_manager"
 
@@ -1162,7 +1162,7 @@ async def test_add_preset_no_selection(
         },
     )
 
-    assert result["errors"] == {"base": "no_covers_selected"}
+    assert result["errors"] == {"select": "no_covers_selected"}
     assert result["type"] == RESULT_TYPE_FORM
     assert result["step_id"] == "add_preset"
 
