@@ -37,7 +37,8 @@
         "data": {
           "image_border_below": "Height of Border below Image Area",
           "image_height": "Image Height",
-          "image_aspect_ratio": "Image Aspect Ratio"
+          "image_aspect_ratio_choice": "Select Image Aspect Ratio",
+          "image_aspect_ratio_other": "Other Image Aspect Ratio"
         }
       },
       "finish_cover": {
@@ -52,6 +53,7 @@
       "duplicate_name": "Duplicate name entered",
       "image_area_too_tall": "Image area taller than drop",
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "aspect_ratio_other_required": "Other Aspect Ratio required when Choice is 'Other'",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {

@@ -24,6 +24,7 @@ from homeassistant.helpers.entity_registry import (
 from homeassistant.util import slugify
 from nicett6.ciw_manager import check_baseline_drop
 from nicett6.connection import open_connection
+from nicett6.utils import MIN_ASPECT_RATIO, MAX_ASPECT_RATIO
 from serial import SerialException
 
 from . import CIW_ASPECT_RATIO_MODE_MAP, image_def_from_config
@@ -33,6 +34,10 @@ from .const import (
     ACTION_DEL_CIW,
     ACTION_DEL_PRESET,
     ACTION_SENSOR_PREFS,
+    CHOICE_ASPECT_RATIO_16_9,
+    CHOICE_ASPECT_RATIO_2_35_1,
+    CHOICE_ASPECT_RATIO_4_3,
+    CHOICE_ASPECT_RATIO_OTHER,
     CONF_ACTION,
     CONF_ADD_ANOTHER,
     CONF_ADDRESS,
@@ -48,7 +53,8 @@ from .const import (
     CONF_FORCE_DIAGONAL_IMPERIAL,
     CONF_HAS_IMAGE_AREA,
     CONF_IMAGE_AREA,
-    CONF_IMAGE_ASPECT_RATIO,
+    CONF_IMAGE_ASPECT_RATIO_CHOICE,
+    CONF_IMAGE_ASPECT_RATIO_OTHER,
     CONF_IMAGE_BORDER_BELOW,
     CONF_IMAGE_HEIGHT,
     CONF_MASK_COVER,
@@ -244,13 +250,30 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 > cover_config[CONF_DROP]
             ):
                 errors["base"] = "image_area_too_tall"
+            elif (
+                user_input[CONF_IMAGE_ASPECT_RATIO_CHOICE] == "aspect_ratio_other"
+                and user_input.get(CONF_IMAGE_ASPECT_RATIO_OTHER) is None
+            ):
+                errors[CONF_IMAGE_ASPECT_RATIO_OTHER] = "aspect_ratio_other_required"
             else:
                 cover_config[CONF_IMAGE_AREA] = {
                     CONF_IMAGE_BORDER_BELOW: user_input[CONF_IMAGE_BORDER_BELOW],
                     CONF_IMAGE_HEIGHT: user_input[CONF_IMAGE_HEIGHT],
-                    CONF_IMAGE_ASPECT_RATIO: user_input[CONF_IMAGE_ASPECT_RATIO],
+                    CONF_IMAGE_ASPECT_RATIO_CHOICE: user_input[
+                        CONF_IMAGE_ASPECT_RATIO_CHOICE
+                    ],
+                    CONF_IMAGE_ASPECT_RATIO_OTHER: user_input.get(
+                        CONF_IMAGE_ASPECT_RATIO_OTHER
+                    ),
                 }
                 return await self.async_step_finish_cover()
+
+        aspect_ratio_choices = {
+            CHOICE_ASPECT_RATIO_16_9: "16:9",
+            CHOICE_ASPECT_RATIO_2_35_1: "2.35:1",
+            CHOICE_ASPECT_RATIO_4_3: "4:3",
+            CHOICE_ASPECT_RATIO_OTHER: "Other",
+        }
 
         data_schema = vol.Schema(
             {
@@ -260,7 +283,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_IMAGE_HEIGHT): vol.All(
                     vol.Coerce(float), vol.Range(min=0, min_included=False)
                 ),
-                vol.Required(CONF_IMAGE_ASPECT_RATIO): vol.In([16 / 9, 2.35]),
+                vol.Required(CONF_IMAGE_ASPECT_RATIO_CHOICE): vol.In(
+                    aspect_ratio_choices
+                ),
+                vol.Optional(CONF_IMAGE_ASPECT_RATIO_OTHER): vol.All(
+                    vol.Coerce(float),
+                    vol.Range(min=MIN_ASPECT_RATIO, max=MAX_ASPECT_RATIO),
+                ),
             }
         )
 

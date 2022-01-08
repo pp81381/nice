@@ -23,6 +23,10 @@ from nicett6.ttbus_device import TTBusDeviceAddress
 from nicett6.utils import AsyncObservable, AsyncObserver
 
 from .const import (
+    CHOICE_ASPECT_RATIO_16_9,
+    CHOICE_ASPECT_RATIO_2_35_1,
+    CHOICE_ASPECT_RATIO_4_3,
+    CHOICE_ASPECT_RATIO_OTHER,
     CONF_ADDRESS,
     CONF_ASPECT_RATIO,
     CONF_ASPECT_RATIO_MODE,
@@ -36,7 +40,8 @@ from .const import (
     CONF_DROPS,
     CONF_FORCE_DIAGONAL_IMPERIAL,
     CONF_IMAGE_AREA,
-    CONF_IMAGE_ASPECT_RATIO,
+    CONF_IMAGE_ASPECT_RATIO_CHOICE,
+    CONF_IMAGE_ASPECT_RATIO_OTHER,
     CONF_IMAGE_BORDER_BELOW,
     CONF_IMAGE_HEIGHT,
     CONF_MASK_COVER,
@@ -103,13 +108,29 @@ class NiceControllerWrapper:
         await self._close()
 
 
+def image_aspect_ratio_from_config_params(choice, other):
+    if choice == CHOICE_ASPECT_RATIO_16_9:
+        return 16 / 9
+    elif choice == CHOICE_ASPECT_RATIO_2_35_1:
+        return 2.35
+    elif choice == CHOICE_ASPECT_RATIO_4_3:
+        return 4 / 3
+    elif choice == CHOICE_ASPECT_RATIO_OTHER:
+        return other
+    else:
+        ValueError("Invalid aspect ratio choice")
+
+
 def image_def_from_config(config):
     image_config = config[CONF_IMAGE_AREA]
     if image_config is not None:
         return ImageDef(
             image_config[CONF_IMAGE_BORDER_BELOW],
             image_config[CONF_IMAGE_HEIGHT],
-            image_config[CONF_IMAGE_ASPECT_RATIO],
+            image_aspect_ratio_from_config_params(
+                image_config[CONF_IMAGE_ASPECT_RATIO_CHOICE],
+                image_config[CONF_IMAGE_ASPECT_RATIO_OTHER],
+            ),
         )
     else:
         return None

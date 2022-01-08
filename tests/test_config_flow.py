@@ -32,6 +32,7 @@ from custom_components.nice.const import (
     ACTION_SENSOR_PREFS,
     CONF_ACTION,
     CONF_CIW_MANAGERS,
+    CONF_IMAGE_ASPECT_RATIO_OTHER,
     CONF_PRESETS,
     CONF_SENSOR_PREFS,
     DOMAIN,
@@ -72,17 +73,6 @@ MASK_COVER_INPUT = {
     "has_image_area": False,
 }
 
-SCREEN_IMAGE_INPUT = {
-    "image_border_below": 0.05,
-    "image_height": 1.57,
-    "image_aspect_ratio": 16 / 9,
-}
-
-INVALID_SCREEN_IMAGE_INPUT = {
-    "image_border_below": 0.05,
-    "image_height": 2.0,
-    "image_aspect_ratio": 16 / 9,
-}
 
 TEST_CONTROLLER_1 = {
     "name": "Controller 1 Test",
@@ -108,7 +98,8 @@ TEST_SCREEN = {
     "image_area": {
         "image_border_below": 0.05,
         "image_height": 1.57,
-        "image_aspect_ratio": 16 / 9,
+        "image_aspect_ratio_choice": "aspect_ratio_16_9",
+        "image_aspect_ratio_other": None,
     },
 }
 
@@ -622,7 +613,7 @@ async def test_cover_without_image_area(
     assert flow.data["covers"][COVER_2_ID] == TEST_MASK
 
 
-async def test_image_area(
+async def test_image_area_16_9(
     hass: HomeAssistant,
     config_step_image_area,
     config_set_unit_system_metric,
@@ -633,7 +624,11 @@ async def test_image_area(
     """Test an image area."""
     result = await hass.config_entries.flow.async_configure(
         config_flow_id,
-        SCREEN_IMAGE_INPUT,
+        {
+            "image_border_below": 0.05,
+            "image_height": 1.57,
+            "image_aspect_ratio_choice": "aspect_ratio_16_9",
+        },
     )
     await hass.async_block_till_done()
 
@@ -656,11 +651,74 @@ async def test_invalid_image_area(
     """Test an invalid image area."""
     result = await hass.config_entries.flow.async_configure(
         config_flow_id,
-        INVALID_SCREEN_IMAGE_INPUT,
+        {
+            "image_border_below": 0.05,
+            "image_height": 2.0,
+            "image_aspect_ratio_choice": "aspect_ratio_16_9",
+        },
     )
     await hass.async_block_till_done()
 
     assert result["errors"] == {"base": "image_area_too_tall"}
+    assert result["type"] == RESULT_TYPE_FORM
+    assert result["step_id"] == "image_area"
+
+
+async def test_image_area_other(
+    hass: HomeAssistant,
+    config_step_image_area,
+    config_set_unit_system_metric,
+    config_add_controller_1,
+    config_add_partial_screen,
+    config_flow_id,
+) -> None:
+    """Test an image area."""
+    result = await hass.config_entries.flow.async_configure(
+        config_flow_id,
+        {
+            "image_border_below": 0.05,
+            "image_height": 1.57,
+            "image_aspect_ratio_choice": "aspect_ratio_other",
+            "image_aspect_ratio_other": 2.37,
+        },
+    )
+    await hass.async_block_till_done()
+
+    assert result["errors"] == {}
+    assert result["type"] == RESULT_TYPE_FORM
+    assert result["step_id"] == "finish_cover"
+
+    flow = get_flow(hass, config_flow_id)
+    assert flow.data["covers"][COVER_1_ID]["image_area"] == {
+        "image_border_below": 0.05,
+        "image_height": 1.57,
+        "image_aspect_ratio_choice": "aspect_ratio_other",
+        "image_aspect_ratio_other": 2.37,
+    }
+
+
+async def test_image_area_other_missing(
+    hass: HomeAssistant,
+    config_step_image_area,
+    config_set_unit_system_metric,
+    config_add_controller_1,
+    config_add_partial_screen,
+    config_flow_id,
+) -> None:
+    """Test an image area."""
+    result = await hass.config_entries.flow.async_configure(
+        config_flow_id,
+        {
+            "image_border_below": 0.05,
+            "image_height": 1.57,
+            "image_aspect_ratio_choice": "aspect_ratio_other",
+        },
+    )
+    await hass.async_block_till_done()
+
+    assert result["errors"] == {
+        CONF_IMAGE_ASPECT_RATIO_OTHER: "aspect_ratio_other_required"
+    }
     assert result["type"] == RESULT_TYPE_FORM
     assert result["step_id"] == "image_area"
 
