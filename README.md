@@ -166,10 +166,14 @@ Select the Preset(s) to be deleted. Click on Submit to delete them.
 
 Specify the following preferences for the CIW and Cover sensors.
 
-| Setting                 | Description                                                                                                                     |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Sensor Unit System      | Unit System to be shown in the CIW and Cover sensors<br>The Integration Unit System will be converted to the Sensor Unit System |
-| Force Diagonal Imperial | Force the Diagonal sensors to display in inches regardless of unit system                                                       |
+| Setting                       | Description                                                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Sensor Unit System            | Unit System to be shown in the CIW and Cover sensors<br>The Integration Unit System will be converted to the Sensor Unit System |
+| Force Diagonal Imperial       | Force the Diagonal sensors to display in inches regardless of unit system                                                       |
+| Decimal Places for dimensions | Define the number of decimal places for sensors that show dimensions such as Image Height, Image Width or Cover Drop (Optional) |
+| Decimal Places for diagonals  | Define the number of decimal places for sensors that show Image Diagonal (Optional)                                             |
+| Decimal Places for areas      | Define the number of decimal places for sensors that show areas such as Image Area (Optional)                                   |
+| Decimal Places for ratios     | Define the number of decimal places for sensors that show ratios such as Aspect Ratio (Optional)                                |
 
 Click on Submit to save the preferences.
 
