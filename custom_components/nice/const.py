@@ -37,7 +37,7 @@ CHOICE_ASPECT_RATIO_OTHER = "aspect_ratio_other"
 
 SERVICE_APPLY_PRESET = "apply_preset"
 SERVICE_SET_ASPECT_RATIO = "set_aspect_ratio"
-
+SERVICE_SET_DROP_PERCENT = "set_drop_percent"
 
 ACTION_ADD_CIW = "Add CIW Manager"
 ACTION_DEL_CIW = "Delete CIW Manager(s)"

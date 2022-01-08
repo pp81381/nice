@@ -31,3 +31,22 @@ set_aspect_ratio:
           min: 0.4
           max: 3.5
           mode: box
+
+set_drop_percent:
+  name: Set Cover Drop Percent
+  description: Set the Cover to the specified drop in percent
+  target:
+    entity:
+      integration: nice
+      domain: cover
+  fields:
+    drop_percent:
+      name: Drop Percent
+      description: The drop in percent (accuracy 0.1%)
+      required: true
+      example: 82.5
+      selector:
+        number:
+          min: 0.0
+          max: 100.0
+          mode: box
