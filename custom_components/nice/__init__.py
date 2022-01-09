@@ -11,7 +11,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_NAME,
     CONF_UNIT_SYSTEM,
-    CONF_UNIT_SYSTEM_METRIC,
     EVENT_HOMEASSISTANT_STOP,
 )
 from homeassistant.core import HomeAssistant
@@ -145,30 +144,54 @@ def image_def_from_config(config):
 
 
 class NiceData:
-    def __init__(self, config_unit_system: str):
+    def __init__(self, config_unit_system: str, sensor_prefs: dict[str, Any]):
         self.config_unit_system: str = config_unit_system
         self.controllers: dict[str, CoverManager] = {}
         self.tt6_covers: dict[str, dict[str, Any]] = {}
         self.ciw_mgrs: dict[str, CIWManager] = {}
-        self.force_imperial_diagonal: bool = False
-        self.sensor_unit_system: str = CONF_UNIT_SYSTEM_METRIC
-        self._decimal_places = {}
+        self._sensor_prefs: dict[str, Any] = sensor_prefs
+
+    @property
+    def sensor_unit_system(self):
+        return self._sensor_prefs.get(
+            CONF_UNIT_SYSTEM,
+            self.config_unit_system,
+        )
+
+    @property
+    def force_imperial_diagonal(self):
+        return self._sensor_prefs.get(
+            CONF_FORCE_DIAGONAL_IMPERIAL,
+            False,
+        )
 
     @property
     def dimensions_decimal_places(self) -> int:
-        return self._decimal_places[CONF_DIMENSIONS_DECIMAL_PLACES]
+        return self._sensor_prefs.get(
+            CONF_DIMENSIONS_DECIMAL_PLACES,
+            DEFAULT_DIMENSIONS_DECIMAL_PLACES,
+        )
 
     @property
     def diagonal_decimal_places(self) -> int:
-        return self._decimal_places[CONF_DIAGONAL_DECIMAL_PLACES]
+        return self._sensor_prefs.get(
+            CONF_DIAGONAL_DECIMAL_PLACES,
+            DEFAULT_DIAGONAL_DECIMAL_PLACES,
+        )
 
     @property
     def area_decimal_places(self) -> int:
-        return self._decimal_places[CONF_AREA_DECIMAL_PLACES]
+        return self._sensor_prefs.get(
+            CONF_AREA_DECIMAL_PLACES,
+            DEFAULT_AREA_DECIMAL_PLACES,
+        )
 
     @property
     def ratio_decimal_places(self) -> int:
-        return self._decimal_places[CONF_RATIO_DECIMAL_PLACES]
+        return self._sensor_prefs.get(
+            CONF_RATIO_DECIMAL_PLACES,
+            DEFAULT_RATIO_DECIMAL_PLACES,
+        )
 
     async def add_controller(self, hass, id, config):
         controller = NiceControllerWrapper(config[CONF_NAME])
@@ -199,28 +222,6 @@ class NiceData:
             "baseline_drop": config[CONF_BASELINE_DROP],
         }
 
-    def set_sensor_prefs(self, sensor_prefs):
-        self.sensor_unit_system = sensor_prefs.get(
-            CONF_UNIT_SYSTEM,
-            self.config_unit_system,
-        )
-        self.force_imperial_diagonal = sensor_prefs.get(
-            CONF_FORCE_DIAGONAL_IMPERIAL,
-            False,
-        )
-        self._decimal_places[CONF_DIMENSIONS_DECIMAL_PLACES] = sensor_prefs.get(
-            CONF_DIMENSIONS_DECIMAL_PLACES, DEFAULT_DIMENSIONS_DECIMAL_PLACES
-        )
-        self._decimal_places[CONF_DIAGONAL_DECIMAL_PLACES] = sensor_prefs.get(
-            CONF_DIAGONAL_DECIMAL_PLACES, DEFAULT_DIAGONAL_DECIMAL_PLACES
-        )
-        self._decimal_places[CONF_AREA_DECIMAL_PLACES] = sensor_prefs.get(
-            CONF_AREA_DECIMAL_PLACES, DEFAULT_AREA_DECIMAL_PLACES
-        )
-        self._decimal_places[CONF_RATIO_DECIMAL_PLACES] = sensor_prefs.get(
-            CONF_RATIO_DECIMAL_PLACES, DEFAULT_RATIO_DECIMAL_PLACES
-        )
-
     async def close(self):
         self.ciw_mgrs = {}
         self.tt6_covers = {}
@@ -231,7 +232,10 @@ class NiceData:
 
 async def make_nice_data(hass: HomeAssistant, entry: ConfigEntry) -> NiceData:
     """Factory for NiceData object"""
-    data = NiceData(entry.data[CONF_UNIT_SYSTEM])
+    data = NiceData(
+        entry.data[CONF_UNIT_SYSTEM],
+        entry.options.get(CONF_SENSOR_PREFS, {}),
+    )
 
     for controller_id, controller_config in entry.data[CONF_CONTROLLERS].items():
         await data.add_controller(hass, controller_id, controller_config)
@@ -242,9 +246,6 @@ async def make_nice_data(hass: HomeAssistant, entry: ConfigEntry) -> NiceData:
     if CONF_CIW_MANAGERS in entry.options:
         for ciw_id, ciw_config in entry.options[CONF_CIW_MANAGERS].items():
             data.add_ciw_manager(ciw_id, ciw_config)
-
-    if CONF_SENSOR_PREFS in entry.options:
-        data.set_sensor_prefs(entry.options[CONF_SENSOR_PREFS])
 
     return data
 
