@@ -50,7 +50,8 @@ class NiceCover(CoverEntity):
         """Create HA entity representing a cover"""
         self._attr_unique_id = unique_id
         self._tt6_cover: TT6Cover = tt6_cover
-        self._set_state_from_tt6_cover()
+        self._attr_name = str(self._tt6_cover.cover.name)
+        self._attr_is_closed = None  # Not initialised by CoverEntity
         self._attr_should_poll = False
         self._attr_device_class = DEVICE_CLASS_SHADE
         self._attr_device_info = make_device_info(controller_id)
@@ -86,15 +87,11 @@ class NiceCover(CoverEntity):
     async def async_will_remove_from_hass(self):
         self._tt6_cover.cover.detach(self._updater)
 
-    def _set_state_from_tt6_cover(self):
+    async def handle_update(self):
         drop_percent = 100.0 - self._tt6_cover.cover.drop_pct * 100.0
-        self._attr_name = str(self._tt6_cover.cover.name)
         self._attr_current_cover_position = round(drop_percent)
         self._attr_is_opening = self._tt6_cover.cover.is_opening
         self._attr_is_closing = self._tt6_cover.cover.is_closing
         self._attr_is_closed = self._tt6_cover.cover.is_closed
         self._attr_extra_state_attributes = {"drop_percent": drop_percent}
-
-    async def handle_update(self):
-        self._set_state_from_tt6_cover()
         self.async_write_ha_state()
