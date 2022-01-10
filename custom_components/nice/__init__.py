@@ -8,11 +8,7 @@ from typing import Any, Callable
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    CONF_NAME,
-    CONF_UNIT_SYSTEM,
-    EVENT_HOMEASSISTANT_STOP,
-)
+from homeassistant.const import CONF_NAME, CONF_UNIT_SYSTEM, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant
 from nicett6.ciw_helper import ImageDef
 from nicett6.ciw_manager import CIWAspectRatioMode, CIWManager
