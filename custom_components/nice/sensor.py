@@ -12,7 +12,7 @@ from homeassistant.const import (
 )
 from homeassistant.helpers.typing import StateType
 from homeassistant.util import slugify
-from homeassistant.util.distance import convert as convert_length_units
+from homeassistant.util.unit_conversion import DistanceConverter
 from nicett6.ciw_helper import CIWHelper
 from nicett6.cover import Cover
 
@@ -24,14 +24,14 @@ def to_target_length_unit(value, from_length_unit, to_length_unit):
     if value is None:
         return None
     else:
-        return convert_length_units(value, from_length_unit, to_length_unit)
+        return DistanceConverter.convert(value, from_length_unit, to_length_unit)
 
 
 def to_target_area_unit(value, from_length_unit, to_length_unit):
     if value is None:
         return None
     else:
-        return convert_length_units(value, from_length_unit, to_length_unit) ** 2
+        return value * DistanceConverter.get_unit_ratio(from_length_unit, to_length_unit) ** 2
 
 
 class EntityBuilder:
