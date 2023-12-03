@@ -6,8 +6,7 @@
         "title": "Define Integration",
         "description": "Enter the details of this Integration",
         "data": {
-          "title": "Integration Title",
-          "unit_system": "Unit System for dimensions"
+          "title": "Integration Title"
         }
       },
       "controller": {
@@ -107,18 +106,6 @@
         "description": "Select the Preset(s) to be deleted",
         "data": {
           "select": "Select names to be removed"
-        }
-      },
-      "sensor_prefs": {
-        "title": "Sensor Preferences",
-        "description": "Define preferences for the CIW and Cover sensors",
-        "data": {
-          "unit_system": "Sensor Unit System",
-          "force_diagonal_imperial": "Force the Diagonal sensors to display in inches regardless of unit system",
-          "dimensions_decimal_places": "Decimal places for dimensions (Height, Width, Drop)",
-          "diagonal_decimal_places": "Decimal places for diagonals",
-          "area_decimal_places": "Decimal places for areas",
-          "ratio_decimal_places": "Decimal places for ratios"
         }
       }
     },

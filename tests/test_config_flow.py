@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import uuid
 from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -10,31 +11,28 @@ import pytest
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_UNIT_SYSTEM_METRIC
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import (
-    RESULT_TYPE_CREATE_ENTRY,
-    RESULT_TYPE_FORM,
-    FlowResult,
-)
+from homeassistant.data_entry_flow import FlowResultType, FlowResult, FlowHandler
 from homeassistant.helpers.entity_registry import (
     async_entries_for_config_entry,
-    async_get_registry,
+    async_get as get_entity_registry,
 )
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from voluptuous import MultipleInvalid
 
-import custom_components.nice.config_flow
-from custom_components.nice.config_flow import OptionsFlowHandler, make_id
+from custom_components.nice.config_flow import (
+    ConfigFlow as NiceConfigFlow,
+    OptionsFlowHandler,
+    make_id,
+)
 from custom_components.nice.const import (
     ACTION_ADD_CIW,
     ACTION_ADD_PRESET,
     ACTION_DEL_CIW,
     ACTION_DEL_PRESET,
-    ACTION_SENSOR_PREFS,
     CONF_ACTION,
     CONF_CIW_MANAGERS,
     CONF_IMAGE_ASPECT_RATIO_OTHER,
     CONF_PRESETS,
-    CONF_SENSOR_PREFS,
     DOMAIN,
 )
 
@@ -162,12 +160,20 @@ async def dummy_open_connection(serial_port=None):
     yield True
 
 
-def get_flow(hass, flow_id):
-    return hass.config_entries.flow._progress[flow_id]
+def get_flow(hass, flow_id) -> NiceConfigFlow:
+    flow_handler: FlowHandler = hass.config_entries.flow._progress[flow_id]
+    if not isinstance(flow_handler, NiceConfigFlow):
+        raise ValueError("flow handler requested from get_flow isn't a NiceConfigFlow")
+    return flow_handler
 
 
-def get_options_flow(hass, flow_id):
-    return hass.config_entries.options._progress[flow_id]
+def get_options_flow(hass, flow_id) -> OptionsFlowHandler:
+    flow_handler: FlowHandler = hass.config_entries.options._progress[flow_id]
+    if not isinstance(flow_handler, OptionsFlowHandler):
+        raise ValueError(
+            "flow handler requested from get_options_flow isn't an OptionsFlowHandler"
+        )
+    return flow_handler
 
 
 async def _dummy_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -215,7 +221,6 @@ async def init_config_flow(hass: HomeAssistant, config_flow_state_override):
     async def async_step_setup_test(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-
         if config_flow_state_override["title"] is not None:
             self.title = config_flow_state_override["title"]
         self.data = config_flow_state_override["data"]
@@ -224,19 +229,15 @@ async def init_config_flow(hass: HomeAssistant, config_flow_state_override):
         method = f"async_step_{step_id}"
         return await getattr(self, method)(None)
 
-    with patch.object(
-        custom_components.nice.config_flow.ConfigFlow,
-        "async_step_user",
-        async_step_setup_test,
-    ):
+    with patch.object(NiceConfigFlow, "async_step_user", async_step_setup_test):
         result = await hass.config_entries.flow.async_init(
             DOMAIN,
             context={"source": "user"},
         )
 
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == step_id
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == step_id
 
     return result
 
@@ -275,16 +276,12 @@ async def init_options_flow(
         method = f"async_step_{step_id}"
         return await getattr(self, method)(None)
 
-    with patch.object(
-        custom_components.nice.config_flow.OptionsFlowHandler,
-        "async_step_init",
-        async_step_setup_test,
-    ):
+    with patch.object(OptionsFlowHandler, "async_step_init", async_step_setup_test):
         result = await hass.config_entries.options.async_init(config_entry.entry_id)
 
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == step_id
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == step_id
 
     return result
 
@@ -299,7 +296,7 @@ async def config_entry(
     hass: HomeAssistant,
     config_data,
     options_data,
-) -> None:
+) -> AsyncGenerator[MockConfigEntry, None]:
     with patch(
         "nicett6.multiplexer.create_serial_connection",
         return_value=[MagicMock(), MagicMock()],
@@ -372,11 +369,6 @@ def options_step_del_preset(options_flow_state_override):
 
 
 @pytest.fixture
-def options_step_sensor_prefs(options_flow_state_override):
-    options_flow_state_override["step_id"] = "sensor_prefs"
-
-
-@pytest.fixture
 def config_set_title(config_flow_state_override):
     config_flow_state_override["title"] = TEST_TITLE
 
@@ -413,7 +405,6 @@ def options_flow_data(options_data):
         {
             "ciw_managers": {},
             "presets": {},
-            "sensor_prefs": {},
         }
     )
     return options_data
@@ -474,9 +465,9 @@ async def test_user_step(hass):
         DOMAIN,
         context={"source": "user"},
     )
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "define"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "define"
 
 
 async def test_define(
@@ -489,18 +480,16 @@ async def test_define(
         config_flow_id,
         {
             "title": TEST_TITLE,
-            "unit_system": "metric",
         },
     )
     await hass.async_block_till_done()
 
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "controller"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "controller"
 
     flow = get_flow(hass, config_flow_id)
     assert flow.title == TEST_TITLE
-    assert flow.data["unit_system"] == "metric"
 
 
 async def test_controller_valid_port(
@@ -523,9 +512,9 @@ async def test_controller_valid_port(
         )
         await hass.async_block_till_done()
 
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "cover"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "cover"
 
     flow = get_flow(hass, config_flow_id)
     assert flow.data == {
@@ -555,9 +544,9 @@ async def test_controller_invalid_port(
         )
         await hass.async_block_till_done()
 
-    assert result["errors"] == {"base": "cannot_connect"}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "controller"
+    assert result.get("errors") == {"base": "cannot_connect"}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "controller"
 
 
 async def test_cover_with_image_area(
@@ -578,9 +567,9 @@ async def test_cover_with_image_area(
         )
         await hass.async_block_till_done()
 
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "image_area"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "image_area"
 
     flow = get_flow(hass, config_flow_id)
     assert flow.tmp == COVER_1_ID
@@ -605,9 +594,9 @@ async def test_cover_without_image_area(
         )
         await hass.async_block_till_done()
 
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "finish_cover"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "finish_cover"
 
     flow = get_flow(hass, config_flow_id)
     assert flow.data["covers"][COVER_2_ID] == TEST_MASK
@@ -632,9 +621,9 @@ async def test_image_area_16_9(
     )
     await hass.async_block_till_done()
 
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "finish_cover"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "finish_cover"
 
     flow = get_flow(hass, config_flow_id)
     assert flow.data["covers"][COVER_1_ID] == TEST_SCREEN
@@ -659,9 +648,9 @@ async def test_invalid_image_area(
     )
     await hass.async_block_till_done()
 
-    assert result["errors"] == {"base": "image_area_too_tall"}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "image_area"
+    assert result.get("errors") == {"base": "image_area_too_tall"}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "image_area"
 
 
 async def test_image_area_other(
@@ -684,9 +673,9 @@ async def test_image_area_other(
     )
     await hass.async_block_till_done()
 
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "finish_cover"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "finish_cover"
 
     flow = get_flow(hass, config_flow_id)
     assert flow.data["covers"][COVER_1_ID]["image_area"] == {
@@ -716,11 +705,11 @@ async def test_image_area_other_missing(
     )
     await hass.async_block_till_done()
 
-    assert result["errors"] == {
+    assert result.get("errors") == {
         CONF_IMAGE_ASPECT_RATIO_OTHER: "aspect_ratio_other_required"
     }
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "image_area"
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "image_area"
 
 
 async def test_finish_cover(
@@ -743,9 +732,9 @@ async def test_finish_cover(
         )
         await hass.async_block_till_done()
 
-    assert result["type"] == RESULT_TYPE_CREATE_ENTRY
-    assert result["title"] == TEST_TITLE
-    assert result["data"] == {
+    assert result.get("type") == FlowResultType.CREATE_ENTRY
+    assert result.get("title") == TEST_TITLE
+    assert result.get("data") == {
         "unit_system": CONF_UNIT_SYSTEM_METRIC,
         "controllers": {CONTROLLER_1_ID: TEST_CONTROLLER_1},
         "covers": {COVER_1_ID: TEST_SCREEN},
@@ -769,9 +758,9 @@ async def test_add_another_cover(
     )
     await hass.async_block_till_done()
 
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "cover"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "cover"
 
 
 async def test_options_init_step(
@@ -783,14 +772,14 @@ async def test_options_init_step(
 ):
     result = await hass.config_entries.options.async_init(config_entry.entry_id)
 
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "select_action"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "select_action"
 
     flow_id = result["flow_id"]
     flow: OptionsFlowHandler = get_options_flow(hass, flow_id)
 
-    assert flow.data == {CONF_CIW_MANAGERS: {}, CONF_PRESETS: {}, CONF_SENSOR_PREFS: {}}
+    assert flow.data == {CONF_CIW_MANAGERS: {}, CONF_PRESETS: {}}
     assert flow.valid_screen_covers == {COVER_1_ID: "Screen"}
     assert flow.valid_mask_covers == {COVER_2_ID: "Mask"}
 
@@ -807,9 +796,9 @@ async def test_menu_add_ciw_with_mask(
     result = await hass.config_entries.options.async_configure(
         options_flow_id, user_input={CONF_ACTION: ACTION_ADD_CIW}
     )
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "add_ciw_manager"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "add_ciw_manager"
 
 
 async def test_menu_add_ciw_no_mask(
@@ -841,9 +830,9 @@ async def test_menu_add_ciw_with_existing(
     result = await hass.config_entries.options.async_configure(
         options_flow_id, user_input={CONF_ACTION: ACTION_ADD_CIW}
     )
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "add_ciw_manager"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "add_ciw_manager"
 
 
 async def test_menu_del_ciw_with_mask(
@@ -890,9 +879,9 @@ async def test_menu_del_ciw_with_existing(
     result = await hass.config_entries.options.async_configure(
         options_flow_id, user_input={CONF_ACTION: ACTION_DEL_CIW}
     )
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "del_ciw_manager"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "del_ciw_manager"
 
 
 async def test_menu_add_preset_with_mask(
@@ -907,9 +896,9 @@ async def test_menu_add_preset_with_mask(
     result = await hass.config_entries.options.async_configure(
         options_flow_id, user_input={CONF_ACTION: ACTION_ADD_PRESET}
     )
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "add_preset"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "add_preset"
 
 
 async def test_menu_add_preset_no_mask(
@@ -923,9 +912,9 @@ async def test_menu_add_preset_no_mask(
     result = await hass.config_entries.options.async_configure(
         options_flow_id, user_input={CONF_ACTION: ACTION_ADD_PRESET}
     )
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "add_preset"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "add_preset"
 
 
 async def test_menu_add_preset_with_existing(
@@ -943,9 +932,9 @@ async def test_menu_add_preset_with_existing(
     result = await hass.config_entries.options.async_configure(
         options_flow_id, user_input={CONF_ACTION: ACTION_ADD_PRESET}
     )
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "add_preset"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "add_preset"
 
 
 async def test_menu_mask_del_preset_with_mask(
@@ -992,25 +981,9 @@ async def test_menu_del_preset_with_existing(
     result = await hass.config_entries.options.async_configure(
         options_flow_id, user_input={CONF_ACTION: ACTION_DEL_PRESET}
     )
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "del_preset"
-
-
-async def test_menu_sensor_prefs(
-    hass: HomeAssistant,
-    options_step_select_action,
-    config_add_controller_1,
-    config_add_screen,
-    options_flow_id,
-) -> None:
-    """Verify Sensor Prefs menu item."""
-    result = await hass.config_entries.options.async_configure(
-        options_flow_id, user_input={CONF_ACTION: ACTION_SENSOR_PREFS}
-    )
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "sensor_prefs"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "del_preset"
 
 
 async def test_add_ciw_no_baseline_drop(
@@ -1036,13 +1009,12 @@ async def test_add_ciw_no_baseline_drop(
             },
         )
 
-    assert result["type"] == RESULT_TYPE_CREATE_ENTRY
-    assert result["title"] == ""
-    assert result["result"] is True
-    assert result["data"] == {
+    assert result.get("type") == FlowResultType.CREATE_ENTRY
+    assert result.get("title") == ""
+    assert result.get("result") == True
+    assert result.get("data") == {
         "ciw_managers": {CIW_1_ID: TEST_CIW_MANAGER_1},
         "presets": {},
-        "sensor_prefs": {},
     }
 
 
@@ -1070,13 +1042,12 @@ async def test_add_ciw_with_baseline_drop(
             },
         )
 
-    assert result["type"] == RESULT_TYPE_CREATE_ENTRY
-    assert result["title"] == ""
-    assert result["result"] is True
-    assert result["data"] == {
+    assert result.get("type") == FlowResultType.CREATE_ENTRY
+    assert result.get("title") == ""
+    assert result.get("result") == True
+    assert result.get("data") == {
         "ciw_managers": {CIW_2_ID: TEST_CIW_MANAGER_2},
         "presets": {},
-        "sensor_prefs": {},
     }
 
 
@@ -1104,9 +1075,9 @@ async def test_add_ciw_with_invalid_baseline_drop(
             },
         )
 
-    assert result["errors"] == {"baseline_drop": "invalid_baseline_drop"}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "add_ciw_manager"
+    assert result.get("errors") == {"baseline_drop": "invalid_baseline_drop"}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "add_ciw_manager"
 
 
 async def test_add_preset(
@@ -1130,9 +1101,9 @@ async def test_add_preset(
             },
         )
 
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "define_drop"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "define_drop"
 
     flow_id = result["flow_id"]
     flow: OptionsFlowHandler = get_options_flow(hass, flow_id)
@@ -1140,7 +1111,6 @@ async def test_add_preset(
     assert flow.data == {
         "ciw_managers": {},
         "presets": {PRESET_1_ID: TEST_PARTIAL_PRESET_1_NO_DROPS},
-        "sensor_prefs": {},
     }
     assert flow.tmp_drops_to_define == [COVER_1_ID, COVER_2_ID]
 
@@ -1162,9 +1132,9 @@ async def test_add_preset_no_selection(
         },
     )
 
-    assert result["errors"] == {"select": "no_covers_selected"}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "add_preset"
+    assert result.get("errors") == {"select": "no_covers_selected"}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "add_preset"
 
 
 async def test_define_drop_1_of_2(
@@ -1184,9 +1154,9 @@ async def test_define_drop_1_of_2(
         user_input={"drop": 1.77},
     )
 
-    assert result["errors"] == {}
-    assert result["type"] == RESULT_TYPE_FORM
-    assert result["step_id"] == "define_drop"
+    assert result.get("errors") == {}
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == "define_drop"
 
     flow_id = result["flow_id"]
     flow: OptionsFlowHandler = get_options_flow(hass, flow_id)
@@ -1194,7 +1164,6 @@ async def test_define_drop_1_of_2(
     assert flow.data == {
         "ciw_managers": {},
         "presets": {PRESET_1_ID: TEST_PARTIAL_PRESET_1_ONE_DROP},
-        "sensor_prefs": {},
     }
     assert flow.tmp_drops_to_define == [COVER_2_ID]
 
@@ -1215,13 +1184,12 @@ async def test_define_drop_2_of_2(
         user_input={"drop": 0.5},
     )
 
-    assert result["type"] == RESULT_TYPE_CREATE_ENTRY
-    assert result["title"] == ""
-    assert result["result"] is True
-    assert result["data"] == {
+    assert result.get("type") == FlowResultType.CREATE_ENTRY
+    assert result.get("title") == ""
+    assert result.get("result") == True
+    assert result.get("data") == {
         "ciw_managers": {},
         "presets": {PRESET_1_ID: TEST_PRESET_1},
-        "sensor_prefs": {},
     }
 
 
@@ -1245,7 +1213,7 @@ async def test_define_drop_invalid_drop(
 
 
 async def count_entities(hass, entry_id, unique_id_prefix):
-    entity_registry = await async_get_registry(hass)
+    entity_registry = get_entity_registry(hass)
     entries = async_entries_for_config_entry(entity_registry, entry_id)
     return sum(1 for e in entries if e.unique_id.startswith(unique_id_prefix))
 
@@ -1275,13 +1243,12 @@ async def test_del_ciw(
     num_entities = await count_entities(hass, config_entry.entry_id, id)
     assert num_entities == 0
 
-    assert result["type"] == RESULT_TYPE_CREATE_ENTRY
-    assert result["title"] == ""
-    assert result["result"] is True
-    assert result["data"] == {
+    assert result.get("type") == FlowResultType.CREATE_ENTRY
+    assert result.get("title") == ""
+    assert result.get("result") == True
+    assert result.get("data") == {
         "ciw_managers": {},
         "presets": {},
-        "sensor_prefs": {},
     }
 
 
@@ -1301,76 +1268,10 @@ async def test_del_preset(
         user_input={"select": [PRESET_1_ID, PRESET_2_ID]},
     )
 
-    assert result["type"] == RESULT_TYPE_CREATE_ENTRY
-    assert result["title"] == ""
-    assert result["result"] is True
-    assert result["data"] == {
+    assert result.get("type") == FlowResultType.CREATE_ENTRY
+    assert result.get("title") == ""
+    assert result.get("result") == True
+    assert result.get("data") == {
         "ciw_managers": {},
         "presets": {},
-        "sensor_prefs": {},
-    }
-
-
-async def test_sensor_prefs_no_decimals(
-    hass: HomeAssistant,
-    options_step_sensor_prefs,
-    config_add_controller_1,
-    config_add_screen,
-    config_add_mask,
-    options_flow_id,
-) -> None:
-    """Test Sensor Preferences action."""
-    result = await hass.config_entries.options.async_configure(
-        options_flow_id,
-        user_input={
-            "unit_system": "metric",
-            "force_diagonal_imperial": True,
-        },
-    )
-
-    assert result["type"] == RESULT_TYPE_CREATE_ENTRY
-    assert result["title"] == ""
-    assert result["result"] is True
-    assert result["data"] == {
-        "ciw_managers": {},
-        "presets": {},
-        "sensor_prefs": {"unit_system": "metric", "force_diagonal_imperial": True},
-    }
-
-
-async def test_sensor_prefs_with_decimals(
-    hass: HomeAssistant,
-    options_step_sensor_prefs,
-    config_add_controller_1,
-    config_add_screen,
-    config_add_mask,
-    options_flow_id,
-) -> None:
-    """Test Sensor Preferences action."""
-    result = await hass.config_entries.options.async_configure(
-        options_flow_id,
-        user_input={
-            "unit_system": "metric",
-            "force_diagonal_imperial": True,
-            "dimensions_decimal_places": 1,
-            "diagonal_decimal_places": 2,
-            "area_decimal_places": 3,
-            "ratio_decimal_places": 4,
-        },
-    )
-
-    assert result["type"] == RESULT_TYPE_CREATE_ENTRY
-    assert result["title"] == ""
-    assert result["result"] is True
-    assert result["data"] == {
-        "ciw_managers": {},
-        "presets": {},
-        "sensor_prefs": {
-            "unit_system": "metric",
-            "force_diagonal_imperial": True,
-            "dimensions_decimal_places": 1,
-            "diagonal_decimal_places": 2,
-            "area_decimal_places": 3,
-            "ratio_decimal_places": 4,
-        },
     }

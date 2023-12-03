@@ -4,11 +4,11 @@ from __future__ import annotations
 import asyncio
 import logging
 from contextlib import suppress
-from typing import Any, Callable
+from typing import Any, Awaitable, Callable
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME, CONF_UNIT_SYSTEM, EVENT_HOMEASSISTANT_STOP
+from homeassistant.const import CONF_NAME, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant
 from nicett6.ciw_helper import ImageDef
 from nicett6.ciw_manager import CIWAspectRatioMode, CIWManager
@@ -17,13 +17,14 @@ from nicett6.cover_manager import CoverManager
 from nicett6.ttbus_device import TTBusDeviceAddress
 from nicett6.utils import AsyncObservable, AsyncObserver
 
+from homeassistant.helpers.device_registry import DeviceInfo
+
 from .const import (
     CHOICE_ASPECT_RATIO_2_35_1,
     CHOICE_ASPECT_RATIO_4_3,
     CHOICE_ASPECT_RATIO_16_9,
     CHOICE_ASPECT_RATIO_OTHER,
     CONF_ADDRESS,
-    CONF_AREA_DECIMAL_PLACES,
     CONF_ASPECT_RATIO,
     CONF_ASPECT_RATIO_MODE,
     CONF_BASELINE_DROP,
@@ -32,11 +33,8 @@ from .const import (
     CONF_CONTROLLERS,
     CONF_COVER,
     CONF_COVERS,
-    CONF_DIAGONAL_DECIMAL_PLACES,
-    CONF_DIMENSIONS_DECIMAL_PLACES,
     CONF_DROP,
     CONF_DROPS,
-    CONF_FORCE_DIAGONAL_IMPERIAL,
     CONF_IMAGE_AREA,
     CONF_IMAGE_ASPECT_RATIO_CHOICE,
     CONF_IMAGE_ASPECT_RATIO_OTHER,
@@ -45,14 +43,8 @@ from .const import (
     CONF_MASK_COVER,
     CONF_NODE,
     CONF_PRESETS,
-    CONF_RATIO_DECIMAL_PLACES,
     CONF_SCREEN_COVER,
-    CONF_SENSOR_PREFS,
     CONF_SERIAL_PORT,
-    DEFAULT_AREA_DECIMAL_PLACES,
-    DEFAULT_DIAGONAL_DECIMAL_PLACES,
-    DEFAULT_DIMENSIONS_DECIMAL_PLACES,
-    DEFAULT_RATIO_DECIMAL_PLACES,
     DOMAIN,
     SERVICE_APPLY_PRESET,
     SERVICE_SET_ASPECT_RATIO,
@@ -76,20 +68,27 @@ async def _await_cancel(task):
 
 
 class NiceControllerWrapper:
-    def __init__(self, name):
+    def __init__(self, name, controller, message_tracker_task):
         self.name = name
-        self._controller = None
-        self._message_tracker_task = None
+        self._controller = controller
+        self._message_tracker_task = message_tracker_task
         self._undo_listener = None
 
-    async def open(self, hass, serial_port):
-        self._controller = CoverManager(serial_port)
-        await self._controller.open()
+    @staticmethod
+    async def open(
+        hass: HomeAssistant,
+        name: str,
+        serial_port: str,
+    ) -> NiceControllerWrapper:
+        """Factory"""
+        controller = CoverManager(serial_port)
+        await controller.open()
+        message_tracker_task = asyncio.create_task(controller.message_tracker())
+        wrapper = NiceControllerWrapper(name, controller, message_tracker_task)
+        wrapper._start_listener(hass)
+        return wrapper
 
-        self._message_tracker_task = asyncio.create_task(
-            self._controller.message_tracker()
-        )
-
+    def _start_listener(self, hass: HomeAssistant):
         async def handle_stop(event):
             _LOGGER.debug(f"Stop Event for Nice Controller {self.name}")
             await self._close()
@@ -107,7 +106,8 @@ class NiceControllerWrapper:
 
     async def close(self):
         _LOGGER.debug(f"Closing Nice Controller {self.name}")
-        self._undo_listener()
+        if self._undo_listener is not None:
+            self._undo_listener()
         await self._close()
 
 
@@ -140,58 +140,15 @@ def image_def_from_config(config):
 
 
 class NiceData:
-    def __init__(self, config_unit_system: str, sensor_prefs: dict[str, Any]):
-        self.config_unit_system: str = config_unit_system
-        self.controllers: dict[str, CoverManager] = {}
+    def __init__(self):
+        self.controllers: dict[str, NiceControllerWrapper] = {}
         self.tt6_covers: dict[str, dict[str, Any]] = {}
-        self.ciw_mgrs: dict[str, CIWManager] = {}
-        self._sensor_prefs: dict[str, Any] = sensor_prefs
-
-    @property
-    def sensor_unit_system(self):
-        return self._sensor_prefs.get(
-            CONF_UNIT_SYSTEM,
-            self.config_unit_system,
-        )
-
-    @property
-    def force_imperial_diagonal(self):
-        return self._sensor_prefs.get(
-            CONF_FORCE_DIAGONAL_IMPERIAL,
-            False,
-        )
-
-    @property
-    def dimensions_decimal_places(self) -> int:
-        return self._sensor_prefs.get(
-            CONF_DIMENSIONS_DECIMAL_PLACES,
-            DEFAULT_DIMENSIONS_DECIMAL_PLACES,
-        )
-
-    @property
-    def diagonal_decimal_places(self) -> int:
-        return self._sensor_prefs.get(
-            CONF_DIAGONAL_DECIMAL_PLACES,
-            DEFAULT_DIAGONAL_DECIMAL_PLACES,
-        )
-
-    @property
-    def area_decimal_places(self) -> int:
-        return self._sensor_prefs.get(
-            CONF_AREA_DECIMAL_PLACES,
-            DEFAULT_AREA_DECIMAL_PLACES,
-        )
-
-    @property
-    def ratio_decimal_places(self) -> int:
-        return self._sensor_prefs.get(
-            CONF_RATIO_DECIMAL_PLACES,
-            DEFAULT_RATIO_DECIMAL_PLACES,
-        )
+        self.ciw_mgrs: dict[str, dict[str, Any]] = {}
 
     async def add_controller(self, hass, id, config):
-        controller = NiceControllerWrapper(config[CONF_NAME])
-        await controller.open(hass, config[CONF_SERIAL_PORT])
+        controller = await NiceControllerWrapper.open(
+            hass, config[CONF_NAME], config[CONF_SERIAL_PORT]
+        )
         self.controllers[id] = controller
 
     async def add_cover(self, id, config):
@@ -228,10 +185,7 @@ class NiceData:
 
 async def make_nice_data(hass: HomeAssistant, entry: ConfigEntry) -> NiceData:
     """Factory for NiceData object"""
-    data = NiceData(
-        entry.data[CONF_UNIT_SYSTEM],
-        entry.options.get(CONF_SENSOR_PREFS, {}),
-    )
+    data = NiceData()
 
     for controller_id, controller_config in entry.data[CONF_CONTROLLERS].items():
         await data.add_controller(hass, controller_id, controller_config)
@@ -247,7 +201,7 @@ async def make_nice_data(hass: HomeAssistant, entry: ConfigEntry) -> NiceData:
 
 
 class EntityUpdater(AsyncObserver):
-    def __init__(self, handler: Callable[[], None]):
+    def __init__(self, handler: Callable[[], Awaitable[None]]):
         super().__init__()
         self.handler = handler
 
@@ -255,7 +209,7 @@ class EntityUpdater(AsyncObserver):
         await self.handler()
 
 
-def make_device_info(controller_id):
+def make_device_info(controller_id) -> DeviceInfo:
     """Return parent device information."""
     return {
         "identifiers": {(DOMAIN, controller_id)},
@@ -281,7 +235,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
-    hass.config_entries.async_setup_platforms(entry, PLATFORMS)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     async def apply_preset(call) -> None:
         """Service call to apply a preset."""

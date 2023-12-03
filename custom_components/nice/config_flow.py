@@ -9,17 +9,12 @@ from uuid import uuid4
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import (
-    CONF_NAME,
-    CONF_UNIT_SYSTEM,
-    CONF_UNIT_SYSTEM_IMPERIAL,
-    CONF_UNIT_SYSTEM_METRIC,
-)
+from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.entity_registry import (
     async_entries_for_config_entry,
-    async_get_registry,
+    async_get as get_entity_registry,
 )
 from homeassistant.util import slugify
 from nicett6.ciw_manager import check_baseline_drop
@@ -33,7 +28,6 @@ from .const import (
     ACTION_ADD_PRESET,
     ACTION_DEL_CIW,
     ACTION_DEL_PRESET,
-    ACTION_SENSOR_PREFS,
     CHOICE_ASPECT_RATIO_2_35_1,
     CHOICE_ASPECT_RATIO_4_3,
     CHOICE_ASPECT_RATIO_16_9,
@@ -41,7 +35,6 @@ from .const import (
     CONF_ACTION,
     CONF_ADD_ANOTHER,
     CONF_ADDRESS,
-    CONF_AREA_DECIMAL_PLACES,
     CONF_ASPECT_RATIO_MODE,
     CONF_BASELINE_DROP,
     CONF_CIW_MANAGERS,
@@ -49,11 +42,8 @@ from .const import (
     CONF_CONTROLLERS,
     CONF_COVER,
     CONF_COVERS,
-    CONF_DIAGONAL_DECIMAL_PLACES,
-    CONF_DIMENSIONS_DECIMAL_PLACES,
     CONF_DROP,
     CONF_DROPS,
-    CONF_FORCE_DIAGONAL_IMPERIAL,
     CONF_HAS_IMAGE_AREA,
     CONF_IMAGE_AREA,
     CONF_IMAGE_ASPECT_RATIO_CHOICE,
@@ -63,19 +53,12 @@ from .const import (
     CONF_MASK_COVER,
     CONF_NODE,
     CONF_PRESETS,
-    CONF_RATIO_DECIMAL_PLACES,
     CONF_SCREEN_COVER,
     CONF_SELECT,
-    CONF_SENSOR_PREFS,
     CONF_SERIAL_PORT,
     CONF_TITLE,
     DOMAIN,
 )
-
-UNIT_SYSTEMS = {
-    CONF_UNIT_SYSTEM_METRIC: "Metric",
-    CONF_UNIT_SYSTEM_IMPERIAL: "Imperial",
-}
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -117,7 +100,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self):
         self.title = ""
         self.data = {
-            CONF_UNIT_SYSTEM: None,
             CONF_CONTROLLERS: {},
             CONF_COVERS: {},
         }
@@ -131,21 +113,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_define(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-
         errors = {}
 
         if user_input is not None:
             self.title = user_input[CONF_TITLE]
-            self.data[CONF_UNIT_SYSTEM] = user_input[CONF_UNIT_SYSTEM]
             return await self.async_step_controller()
 
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_TITLE, default="Nice TT6"): str,
-                vol.Required(
-                    CONF_UNIT_SYSTEM,
-                    default=self.hass.config.units.name,
-                ): vol.In(UNIT_SYSTEMS),
+                vol.Required(CONF_TITLE, default="Nice TT6"): str,  # type: ignore
             }
         )
 
@@ -158,7 +134,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_controller(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-
         errors = {}
 
         if user_input is not None:
@@ -178,9 +153,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_NAME, default=f"Controller {next_num}"): str,
+                vol.Required(CONF_NAME, default=f"Controller {next_num}"): str,  # type: ignore
                 vol.Required(CONF_SERIAL_PORT): str,
-                vol.Optional(CONF_ADD_ANOTHER, default=False): bool,
+                vol.Optional(CONF_ADD_ANOTHER, default=False): bool,  # type: ignore
             }
         )
 
@@ -188,13 +163,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="controller",
             data_schema=data_schema,
             errors=errors,
-            description_placeholders={"sequence_number": next_num},
+            description_placeholders={"sequence_number": str(next_num)},
         )
 
     async def async_step_cover(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-
         errors = {}
 
         if user_input is not None:
@@ -221,16 +195,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_NAME, default=f"Cover {next_num}"): str,
+                vol.Required(CONF_NAME, default=f"Cover {next_num}"): str,  # type: ignore
                 vol.Required(CONF_CONTROLLER): vol.In(valid_controllers),
                 vol.Required(CONF_ADDRESS): vol.All(vol.Coerce(int), vol.Range(min=0)),
-                vol.Required(CONF_NODE, default=4): vol.All(
+                vol.Required(CONF_NODE, default=4): vol.All(  # type: ignore
                     vol.Coerce(int), vol.Range(min=0)
                 ),
                 vol.Required(CONF_DROP): vol.All(
                     vol.Coerce(float), vol.Range(min=0, min_included=False)
                 ),
-                vol.Optional(CONF_HAS_IMAGE_AREA, default=False): bool,
+                vol.Optional(CONF_HAS_IMAGE_AREA, default=False): bool,  # type: ignore
             }
         )
 
@@ -238,13 +212,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="cover",
             data_schema=data_schema,
             errors=errors,
-            description_placeholders={"sequence_number": next_num},
+            description_placeholders={"sequence_number": str(next_num)},
         )
 
     async def async_step_image_area(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-
         cover_config = self.data[CONF_COVERS][self.tmp]
         errors = {}
 
@@ -307,7 +280,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_finish_cover(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-
         errors = {}
 
         if user_input is not None:
@@ -316,7 +288,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 return self.async_create_entry(title=self.title, data=self.data)
 
-        data_schema = vol.Schema({vol.Optional(CONF_ADD_ANOTHER, default=False): bool})
+        data_schema = vol.Schema({vol.Optional(CONF_ADD_ANOTHER, default=False): bool})  # type: ignore
 
         return self.async_show_form(
             step_id="finish_cover",
@@ -335,9 +307,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 self.config_entry.options.get(CONF_CIW_MANAGERS, {})
             ),
             CONF_PRESETS: deepcopy(self.config_entry.options.get(CONF_PRESETS, {})),
-            CONF_SENSOR_PREFS: deepcopy(
-                self.config_entry.options.get(CONF_SENSOR_PREFS, {})
-            ),
         }
         self.valid_screen_covers = {
             id: config[CONF_NAME]
@@ -350,7 +319,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             if config[CONF_IMAGE_AREA] is None
         }
         self.tmp_preset_id = None
-        self.tmp_drops_to_define = None
+        self.tmp_drops_to_define = []
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -374,8 +343,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 return await self.async_step_add_preset()
             elif user_input[CONF_ACTION] == ACTION_DEL_PRESET:
                 return await self.async_step_del_preset()
-            elif user_input[CONF_ACTION] == ACTION_SENSOR_PREFS:
-                return await self.async_step_sensor_prefs()
             else:  # pragma: no cover
                 return self.async_abort(reason="not_implemented")
 
@@ -387,7 +354,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         actions.append(ACTION_ADD_PRESET)
         if len(self.data[CONF_PRESETS]) > 0:
             actions.append(ACTION_DEL_PRESET)
-        actions.append(ACTION_SENSOR_PREFS)
 
         data_schema = vol.Schema({vol.Required(CONF_ACTION): vol.In(actions)})
 
@@ -404,23 +370,23 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         screen_config = self.config_entry.data[CONF_COVERS][screen_id]
         mask_config = self.config_entry.data[CONF_COVERS][mask_id]
         image_def = image_def_from_config(screen_config)
-        try:
-            check_baseline_drop(
-                mode,
-                baseline_drop,
-                screen_config[CONF_DROP],
-                mask_config[CONF_DROP],
-                image_def,
-            )
-            return True
-        except ValueError as exc:
-            _LOGGER.warning(str(exc))
+        if image_def is not None:
+            try:
+                check_baseline_drop(
+                    mode,
+                    baseline_drop,
+                    screen_config[CONF_DROP],
+                    mask_config[CONF_DROP],
+                    image_def,
+                )
+                return True
+            except ValueError as exc:
+                _LOGGER.warning(str(exc))
         return False
 
     async def async_step_add_ciw_manager(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-
         errors = {}
 
         if user_input is not None:
@@ -444,7 +410,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_NAME, default=f"CIW Manager {next_num}"): str,
+                vol.Required(CONF_NAME, default=f"CIW Manager {next_num}"): str,  # type: ignore
                 vol.Required(CONF_SCREEN_COVER): vol.In(self.valid_screen_covers),
                 vol.Required(CONF_MASK_COVER): vol.In(self.valid_mask_covers),
                 vol.Required(CONF_ASPECT_RATIO_MODE): vol.In(
@@ -458,17 +424,16 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             step_id="add_ciw_manager",
             data_schema=data_schema,
             errors=errors,
-            description_placeholders={"sequence_number": next_num},
+            description_placeholders={"sequence_number": str(next_num)},
         )
 
     async def async_step_del_ciw_manager(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-
         errors = {}
 
         if user_input is not None:
-            entity_registry = await async_get_registry(self.hass)
+            entity_registry = get_entity_registry(self.hass)
             entries = async_entries_for_config_entry(
                 entity_registry, self.config_entry.entry_id
             )
@@ -496,7 +461,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_add_preset(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-
         errors = {}
 
         if user_input is not None:
@@ -519,8 +483,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_NAME, default=f"Preset {next_num}"): str,
-                vol.Required(CONF_SELECT, default=list(covers.keys())): cv.multi_select(
+                vol.Required(CONF_NAME, default=f"Preset {next_num}"): str,  # type: ignore
+                vol.Required(CONF_SELECT, default=list(covers.keys())): cv.multi_select(  # type: ignore
                     covers
                 ),
             }
@@ -530,13 +494,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             step_id="add_preset",
             data_schema=data_schema,
             errors=errors,
-            description_placeholders={"sequence_number": next_num},
+            description_placeholders={"sequence_number": str(next_num)},
         )
 
     async def async_step_define_drop(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-
         errors = {}
 
         preset_config = self.data[CONF_PRESETS][self.tmp_preset_id]
@@ -581,7 +544,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_del_preset(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-
         errors = {}
 
         if user_input is not None:
@@ -597,76 +559,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="del_preset",
-            data_schema=data_schema,
-            errors=errors,
-        )
-
-    async def async_step_sensor_prefs(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-
-        errors = {}
-
-        if user_input is not None:
-            wanted_keys = [
-                CONF_UNIT_SYSTEM,
-                CONF_FORCE_DIAGONAL_IMPERIAL,
-                CONF_DIMENSIONS_DECIMAL_PLACES,
-                CONF_DIAGONAL_DECIMAL_PLACES,
-                CONF_AREA_DECIMAL_PLACES,
-                CONF_RATIO_DECIMAL_PLACES,
-            ]
-            self.data[CONF_SENSOR_PREFS] = {
-                k: user_input[k] for k in wanted_keys if k in user_input
-            }
-            return self.async_create_entry(title="", data=self.data)
-
-        sensor_prefs = self.data[CONF_SENSOR_PREFS]
-        current_unit_system = sensor_prefs.get(
-            CONF_UNIT_SYSTEM,
-            self.config_entry.data[CONF_UNIT_SYSTEM],
-        )
-        current_force_diagonal_imperial = sensor_prefs.get(
-            CONF_FORCE_DIAGONAL_IMPERIAL, False
-        )
-        current_dimensions_decimal_places = sensor_prefs.get(
-            CONF_DIMENSIONS_DECIMAL_PLACES
-        )
-        current_diagonal_decimal_places = sensor_prefs.get(CONF_DIAGONAL_DECIMAL_PLACES)
-        current_area_decimal_places = sensor_prefs.get(CONF_AREA_DECIMAL_PLACES)
-        current_ratio_decimal_places = sensor_prefs.get(CONF_RATIO_DECIMAL_PLACES)
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_UNIT_SYSTEM,
-                    description={"suggested_value": current_unit_system},
-                ): vol.In(UNIT_SYSTEMS),
-                vol.Required(
-                    CONF_FORCE_DIAGONAL_IMPERIAL,
-                    description={"suggested_value": current_force_diagonal_imperial},
-                ): bool,
-                vol.Optional(
-                    CONF_DIMENSIONS_DECIMAL_PLACES,
-                    description={"suggested_value": current_dimensions_decimal_places},
-                ): vol.All(vol.Coerce(int), vol.Range(min=0)),
-                vol.Optional(
-                    CONF_DIAGONAL_DECIMAL_PLACES,
-                    description={"suggested_value": current_diagonal_decimal_places},
-                ): vol.All(vol.Coerce(int), vol.Range(min=0)),
-                vol.Optional(
-                    CONF_AREA_DECIMAL_PLACES,
-                    description={"suggested_value": current_area_decimal_places},
-                ): vol.All(vol.Coerce(int), vol.Range(min=0)),
-                vol.Optional(
-                    CONF_RATIO_DECIMAL_PLACES,
-                    description={"suggested_value": current_ratio_decimal_places},
-                ): vol.All(vol.Coerce(int), vol.Range(min=0)),
-            }
-        )
-
-        return self.async_show_form(
-            step_id="sensor_prefs",
             data_schema=data_schema,
             errors=errors,
         )

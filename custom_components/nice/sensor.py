@@ -2,19 +2,19 @@ from __future__ import annotations
 
 from typing import Callable
 
-from homeassistant.components.sensor import SensorEntity
-from homeassistant.const import (
-    AREA_SQUARE_METERS,
-    CONF_UNIT_SYSTEM_METRIC,
-    LENGTH_FEET,
-    LENGTH_INCHES,
-    LENGTH_METERS,
+from homeassistant.components.sensor import (
+    SensorEntity,
+    SensorDeviceClass,
+    SensorEntityDescription,
 )
+from homeassistant.const import UnitOfLength
 from homeassistant.helpers.typing import StateType
 from homeassistant.util import slugify
 from homeassistant.util.unit_conversion import DistanceConverter
 from nicett6.ciw_helper import CIWHelper
 from nicett6.cover import Cover
+
+from homeassistant.util.unit_system import METRIC_SYSTEM
 
 from . import EntityUpdater, NiceData, make_device_info
 from .const import DOMAIN
@@ -27,13 +27,6 @@ def to_target_length_unit(value, from_length_unit, to_length_unit):
         return DistanceConverter.convert(value, from_length_unit, to_length_unit)
 
 
-def to_target_area_unit(value, from_length_unit, to_length_unit):
-    if value is None:
-        return None
-    else:
-        return value * DistanceConverter.get_unit_ratio(from_length_unit, to_length_unit) ** 2
-
-
 class EntityBuilder:
     def __init__(self, data: NiceData) -> None:
         self.data = data
@@ -44,8 +37,8 @@ class EntityBuilder:
         name: str,
         icon: str | None,
         native_unit_of_measurement: str | None,
-        decimal_places: int | None,
         getter: Callable[[CIWHelper], StateType],
+        device_class: SensorDeviceClass | None,
     ):
         self.entities.extend(
             [
@@ -56,7 +49,7 @@ class EntityBuilder:
                     icon,
                     native_unit_of_measurement,
                     getter,
-                    decimal_places,
+                    device_class,
                 )
                 for id, item in self.data.ciw_mgrs.items()
             ]
@@ -67,8 +60,8 @@ class EntityBuilder:
         name: str,
         icon: str | None,
         native_unit_of_measurement: str | None,
-        decimal_places: int | None,
-        getter: Callable[[CIWHelper], StateType],
+        getter: Callable[[Cover], StateType],
+        device_class: SensorDeviceClass | None,
     ):
         self.entities.extend(
             [
@@ -80,7 +73,7 @@ class EntityBuilder:
                     icon,
                     native_unit_of_measurement,
                     getter,
-                    decimal_places,
+                    device_class,
                 )
                 for id, item in self.data.tt6_covers.items()
             ]
@@ -92,86 +85,47 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     data: NiceData = hass.data[DOMAIN][config_entry.entry_id]
     builder: EntityBuilder = EntityBuilder(data)
 
-    config_length_unit = (
-        LENGTH_METERS
-        if data.config_unit_system == CONF_UNIT_SYSTEM_METRIC
-        else LENGTH_INCHES
+    native_length_unit = (
+        UnitOfLength.METERS
+        if hass.config.units is METRIC_SYSTEM
+        else UnitOfLength.INCHES
     )
-
-    if data.sensor_unit_system == CONF_UNIT_SYSTEM_METRIC:
-        sensor_length_unit = LENGTH_METERS
-        sensor_diagonal_length_unit = (
-            LENGTH_INCHES if data.force_imperial_diagonal else LENGTH_METERS
-        )
-        sensor_area_length_unit = LENGTH_METERS
-        sensor_area_unit = AREA_SQUARE_METERS
-    else:
-        sensor_length_unit = LENGTH_INCHES
-        sensor_diagonal_length_unit = LENGTH_INCHES
-        sensor_area_length_unit = LENGTH_FEET
-        sensor_area_unit = "ft²"
 
     builder.add_ciw_sensors(
         "Image Height",
         "mdi:arrow-expand-vertical",
-        sensor_length_unit,
-        data.dimensions_decimal_places,
-        lambda ciw_helper: to_target_length_unit(
-            ciw_helper.image_height,
-            config_length_unit,
-            sensor_length_unit,
-        ),
+        native_length_unit,
+        lambda ciw_helper: ciw_helper.image_height,
+        SensorDeviceClass.DISTANCE,
     )
     builder.add_ciw_sensors(
         "Image Width",
         "mdi:arrow-expand-horizontal",
-        sensor_length_unit,
-        data.dimensions_decimal_places,
-        lambda ciw_helper: to_target_length_unit(
-            ciw_helper.image_width,
-            config_length_unit,
-            sensor_length_unit,
-        ),
+        native_length_unit,
+        lambda ciw_helper: ciw_helper.image_width,
+        SensorDeviceClass.DISTANCE,
     )
+    # Diagonal unit can be set to inches from the Entity Configuration
     builder.add_ciw_sensors(
         "Image Diagonal",
         "mdi:arrow-top-left-bottom-right",
-        sensor_diagonal_length_unit,
-        data.diagonal_decimal_places,
-        lambda ciw_helper: to_target_length_unit(
-            ciw_helper.image_diagonal,
-            config_length_unit,
-            sensor_diagonal_length_unit,
-        ),
-    )
-    builder.add_ciw_sensors(
-        "Image Area",
-        "mdi:arrow-expand-all",
-        sensor_area_unit,
-        data.area_decimal_places,
-        lambda ciw_helper: to_target_area_unit(
-            ciw_helper.image_area,
-            config_length_unit,
-            sensor_area_length_unit,
-        ),
+        native_length_unit,
+        lambda ciw_helper: ciw_helper.image_diagonal,
+        SensorDeviceClass.DISTANCE,
     )
     builder.add_ciw_sensors(
         "Aspect Ratio",
         "mdi:aspect-ratio",
         ":1",
-        data.ratio_decimal_places,
         lambda ciw_helper: ciw_helper.aspect_ratio,
+        None,
     )
     builder.add_cover_sensors(
         "Drop",
         "mdi:arrow-collapse-down",
-        sensor_length_unit,
-        data.dimensions_decimal_places,
-        lambda cover: to_target_length_unit(
-            cover.drop,
-            config_length_unit,
-            sensor_length_unit,
-        ),
+        native_length_unit,
+        lambda cover: cover.drop,
+        SensorDeviceClass.DISTANCE,
     )
     async_add_entities(builder.entities)
 
@@ -184,10 +138,10 @@ class NiceCIWSensor(SensorEntity):
         unique_id,
         helper: CIWHelper,
         name: str,
-        icon: str,
+        icon: str | None,
         native_unit_of_measurement: str | None,
         getter: Callable[[CIWHelper], StateType],
-        decimal_places: float | None,
+        device_class: SensorDeviceClass | None,
     ) -> None:
         """A Sensor for a CIWManager property."""
         self._attr_unique_id = unique_id
@@ -197,7 +151,7 @@ class NiceCIWSensor(SensorEntity):
         self._attr_should_poll = False
         self._attr_native_unit_of_measurement = native_unit_of_measurement
         self._getter = getter
-        self._decimal_places = decimal_places
+        self._attr_device_class = device_class
         self._updater = EntityUpdater(self.handle_update)
 
     async def async_added_to_hass(self):
@@ -210,14 +164,7 @@ class NiceCIWSensor(SensorEntity):
         self._helper.mask.detach(self._updater)
 
     async def handle_update(self):
-        full_precision_value = self._getter(self._helper)
-        if full_precision_value is None or self._decimal_places is None:
-            self._attr_native_value = full_precision_value
-        else:
-            self._attr_native_value = round(full_precision_value, self._decimal_places)
-        self._attr_extra_state_attributes = {
-            "full_precision_value": full_precision_value,
-        }
+        self._attr_native_value = self._getter(self._helper)
         self.async_write_ha_state()
 
 
@@ -230,10 +177,10 @@ class NiceCoverSensor(SensorEntity):
         cover: Cover,
         controller_id,
         name: str,
-        icon: str,
-        native_unit_of_measurement: str,
+        icon: str | None,
+        native_unit_of_measurement: str | None,
         getter: Callable[[Cover], StateType],
-        decimal_places: float | None,
+        device_class: SensorDeviceClass | None,
     ) -> None:
         """A Sensor for a Cover property."""
         self._attr_unique_id = unique_id
@@ -244,7 +191,7 @@ class NiceCoverSensor(SensorEntity):
         self._attr_device_info = make_device_info(controller_id)
         self._attr_native_unit_of_measurement = native_unit_of_measurement
         self._getter = getter
-        self._decimal_places = decimal_places
+        self._attr_device_class = device_class
         self._updater = EntityUpdater(self.handle_update)
 
     async def async_added_to_hass(self):
@@ -255,12 +202,5 @@ class NiceCoverSensor(SensorEntity):
         self._cover.detach(self._updater)
 
     async def handle_update(self):
-        full_precision_value = self._getter(self._cover)
-        if full_precision_value is None or self._decimal_places is None:
-            self._attr_native_value = full_precision_value
-        else:
-            self._attr_native_value = round(full_precision_value, self._decimal_places)
-        self._attr_extra_state_attributes = {
-            "full_precision_value": full_precision_value,
-        }
+        self._attr_native_value = self._getter(self._cover)
         self.async_write_ha_state()
