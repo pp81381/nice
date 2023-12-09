@@ -32,7 +32,6 @@ A Cover can optionally have an Image Area defined to represent the screen. An op
 - Image Height
 - Image Width
 - Image Diagonal
-- Image Area
 - Aspect Ratio
 
 The Integration offers a service called [nice.set_aspect_ratio](#niceset_aspect_ratio) which will set the Covers managed by a CIW Manager to a specific Aspect Ratio.
@@ -56,10 +55,9 @@ Add the Integration to Home Assistant as follows:
 
 Enter the details of the Integration:
 
-| Field       | Description                                                                                                                                                                                                                     |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Title       | The title of the integration                                                                                                                                                                                                    |
-| Unit System | The unit system used in the Integration configuration<br>(i.e. to define the dimensions of the Covers and Image Areas in the following steps)<br>Note that the unit system displayed by the sensors can be different if desired |
+| Field       | Description                            |
+| ----------- | -------------------------------------- |
+| Title       | The title of the integration           |
 
 Click Submit to move to the next step.
 
@@ -124,7 +122,6 @@ Navigate to Configuration->Integrations, locate the Nice Integration and click o
 | Del CIW Manager    | Delete a CIW Manager<br>This option is only shown if any CIW Managers exist.                                                     |
 | Add Preset         | Add a Preset                                                                                                                     |
 | Del Preset         | Delete a Preset<br>This option is only shown if any Presets exist.                                                               |
-| Sensor Preferences | Specify preferences for the CIW and Cover sensors such as Unit System and Rounding                                               |
 
 Select an option and click on Submit to move to the next step.
 
@@ -161,21 +158,6 @@ Give the Preset a name and select the list of Covers to be moved. Click Submit t
 ## Deleting Presets
 
 Select the Preset(s) to be deleted. Click on Submit to delete them.
-
-## Setting Sensor Preferences
-
-Specify the following preferences for the CIW and Cover sensors.
-
-| Setting                       | Description                                                                                                                     |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Sensor Unit System            | Unit System to be shown in the CIW and Cover sensors<br>The Integration Unit System will be converted to the Sensor Unit System |
-| Force Diagonal Imperial       | Force the Diagonal sensors to display in inches regardless of unit system                                                       |
-| Decimal Places for dimensions | Define the number of decimal places for sensors that show dimensions such as Image Height, Image Width or Cover Drop (Optional) |
-| Decimal Places for diagonals  | Define the number of decimal places for sensors that show Image Diagonal (Optional)                                             |
-| Decimal Places for areas      | Define the number of decimal places for sensors that show areas such as Image Area (Optional)                                   |
-| Decimal Places for ratios     | Define the number of decimal places for sensors that show ratios such as Aspect Ratio (Optional)                                |
-
-Click on Submit to save the preferences.
 
 # Services
 
