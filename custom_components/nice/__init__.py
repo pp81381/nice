@@ -17,7 +17,7 @@ from nicett6.cover_manager import CoverManager
 from nicett6.ttbus_device import TTBusDeviceAddress
 from nicett6.utils import AsyncObservable, AsyncObserver
 
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers import device_registry as dr
 
 from .const import (
     CHOICE_ASPECT_RATIO_2_35_1,
@@ -159,13 +159,13 @@ class NiceData:
         )
         self.tt6_covers[id] = {
             "tt6_cover": tt6_cover,
-            "controller_id": config[CONF_CONTROLLER],
             "image_def": image_def_from_config(config),
         }
 
     def add_ciw_manager(self, id, config):
         self.ciw_mgrs[id] = {
             "name": config[CONF_NAME],
+            "screen_cover_id": config[CONF_SCREEN_COVER],
             "ciw_manager": CIWManager(
                 self.tt6_covers[config[CONF_SCREEN_COVER]]["tt6_cover"],
                 self.tt6_covers[config[CONF_MASK_COVER]]["tt6_cover"],
@@ -186,12 +186,28 @@ class NiceData:
 async def make_nice_data(hass: HomeAssistant, entry: ConfigEntry) -> NiceData:
     """Factory for NiceData object"""
     data = NiceData()
+    device_registry = dr.async_get(hass)
 
     for controller_id, controller_config in entry.data[CONF_CONTROLLERS].items():
         await data.add_controller(hass, controller_id, controller_config)
+        device_registry.async_get_or_create(
+            config_entry_id=entry.entry_id,
+            identifiers={(DOMAIN, controller_id)},
+            manufacturer="Nice",
+            name=controller_config[CONF_NAME],
+            model="Nice TT6 Control Unit",
+        )
 
     for cover_id, cover_config in entry.data[CONF_COVERS].items():
         await data.add_cover(cover_id, cover_config)
+        device_registry.async_get_or_create(
+            config_entry_id=entry.entry_id,
+            identifiers={(DOMAIN, cover_id)},
+            name=cover_config[CONF_NAME],
+            manufacturer="Nice",
+            model="Nice Tubular Motor",
+            via_device=(DOMAIN, cover_config[CONF_CONTROLLER]),
+        )
 
     if CONF_CIW_MANAGERS in entry.options:
         for ciw_id, ciw_config in entry.options[CONF_CIW_MANAGERS].items():
@@ -207,16 +223,6 @@ class EntityUpdater(AsyncObserver):
 
     async def update(self, observable: AsyncObservable):
         await self.handler()
-
-
-def make_device_info(controller_id) -> DeviceInfo:
-    """Return parent device information."""
-    return {
-        "identifiers": {(DOMAIN, controller_id)},
-        "name": f"Nice TT6 ({controller_id})",
-        "manufacturer": "Nice",
-        "model": "TT6 Control Unit",
-    }
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:

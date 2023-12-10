@@ -10,7 +10,7 @@ from homeassistant.helpers.entity import get_device_class
 from homeassistant.util import slugify
 from nicett6.cover import TT6Cover
 
-from . import EntityUpdater, NiceData, make_device_info
+from . import EntityUpdater, NiceData
 from .const import DOMAIN, SERVICE_SET_DROP_PERCENT
 
 
@@ -22,7 +22,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         NiceCover(
             slugify(id),
             item["tt6_cover"],
-            item["controller_id"],
         )
         for id, item in data.tt6_covers.items()
     ]
@@ -44,15 +43,16 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 class NiceCover(CoverEntity):
     """Representation of a cover"""
 
-    def __init__(self, unique_id, tt6_cover: TT6Cover, controller_id) -> None:
+    def __init__(self, cover_id, tt6_cover: TT6Cover) -> None:
         """Create HA entity representing a cover"""
-        self._attr_unique_id = unique_id
+        self._attr_unique_id = cover_id
         self._tt6_cover: TT6Cover = tt6_cover
-        self._attr_name = str(self._tt6_cover.cover.name)
+        self._attr_has_entity_name = True
+        self._attr_name = None
         self._attr_is_closed = None  # Not initialised by CoverEntity
         self._attr_should_poll = False
         self._attr_device_class = CoverDeviceClass.SHADE
-        self._attr_device_info = make_device_info(controller_id)
+        self._attr_device_info = {"identifiers": {(DOMAIN, cover_id)}}
         self._updater = EntityUpdater(self.handle_update)
         self._attr_supported_features = (
             CoverEntityFeature.OPEN
