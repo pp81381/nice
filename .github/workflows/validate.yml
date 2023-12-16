@@ -1,4 +1,4 @@
-name: CI
+name: Validate with hassfest and HACS
 
 on:
   push:
@@ -8,18 +8,17 @@ on:
   workflow_dispatch:
 
 jobs:
-  hass_validate:
-    name: Hassfest
+  validate-hass:
+    name: Hassfest validation
     runs-on: "ubuntu-latest"
     steps:
-        - uses: "actions/checkout@v2"
+        - uses: "actions/checkout@v3"
         - uses: "home-assistant/actions/hassfest@master"
-  hacs:
-    name: HACS Action
+  validate-hacs:
     runs-on: "ubuntu-latest"
+    name: HACS validation
     steps:
-      - uses: "actions/checkout@v2"
-      - name: HACS Action
-        uses: "hacs/action@main"
+      - uses: "actions/checkout@v3"
+      - uses: "hacs/action@main"
         with:
           category: "integration"
