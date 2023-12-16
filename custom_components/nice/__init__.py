@@ -111,7 +111,7 @@ class NiceControllerWrapper:
         await self._close()
 
 
-def image_aspect_ratio_from_config_params(choice, other):
+def image_aspect_ratio_from_config_params(choice: str, other: float) -> float:
     if choice == CHOICE_ASPECT_RATIO_16_9:
         return 16 / 9
     elif choice == CHOICE_ASPECT_RATIO_2_35_1:
@@ -121,7 +121,7 @@ def image_aspect_ratio_from_config_params(choice, other):
     elif choice == CHOICE_ASPECT_RATIO_OTHER:
         return other
     else:
-        ValueError("Invalid aspect ratio choice")
+        raise ValueError("Invalid aspect ratio choice")
 
 
 def image_def_from_config(config):
