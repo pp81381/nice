@@ -157,6 +157,40 @@ Takes the name of the Preset as the argument
 
 Takes a Cover entity and the percentage drop as parameters. This service will set the drop to an accuracy of up to 0.1% as opposed to the `cover.set_current_position` service which uses an `int` to specify the position.
 
+## nice.send_simple_command
+
+Takes a Cover entity and the command name as parameters.
+
+Valid commands are as follows.  
+
+```json
+"options": {
+    "stop": "Stop",
+    "move_down": "Move down",
+    "move_up": "Move up",
+    "move_pos_1": "Move to built-in preset 1",
+    "move_pos_2": "Move to built-in preset 2",
+    "move_pos_3": "Move to built-in preset 3",
+    "move_pos_4": "Move to built-in preset 4",
+    "move_pos_5": "Move to built-in preset 5",
+    "move_pos_6": "Move to built-in preset 6",
+    "move_up_step": "Move up a step",
+    "move_down_step": "Move down a step",
+    "store_pos_1": "Store current position in built-in preset 1",
+    "store_pos_2": "Store current position in built-in preset 2",
+    "store_pos_3": "Store current position in built-in preset 3",
+    "store_pos_4": "Store current position in built-in preset 4",
+    "store_pos_5": "Store current position in built-in preset 5",
+    "store_pos_6": "Store current position in built-in preset 6",
+    "del_pos_1": "Delete built-in preset 1",
+    "del_pos_2": "Delete built-in preset 2",
+    "del_pos_3": "Delete built-in preset 3",
+    "del_pos_4": "Delete built-in preset 4",
+    "del_pos_5": "Delete built-in preset 5",
+    "del_pos_6": "Delete built-in preset 6"
+}
+```
+
 # Emulator
 
 If you would like to experiment with this integration then you can run an emulator of the Nice TT6 controller.
