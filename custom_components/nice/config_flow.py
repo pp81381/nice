@@ -12,17 +12,13 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers.entity_registry import (
-    async_entries_for_config_entry,
-    async_get as get_entity_registry,
-)
+from homeassistant.helpers.entity_registry import async_entries_for_config_entry
+from homeassistant.helpers.entity_registry import async_get as get_entity_registry
 from homeassistant.util import slugify
-from nicett6.ciw_manager import check_baseline_drop
 from nicett6.connection import open_connection
 from nicett6.utils import MAX_ASPECT_RATIO, MIN_ASPECT_RATIO
 from serial import SerialException
 
-from . import CIW_ASPECT_RATIO_MODE_MAP, image_def_from_config
 from .const import (
     ACTION_ADD_CIW,
     ACTION_ADD_PRESET,
@@ -35,8 +31,6 @@ from .const import (
     CONF_ACTION,
     CONF_ADD_ANOTHER,
     CONF_ADDRESS,
-    CONF_ASPECT_RATIO_MODE,
-    CONF_BASELINE_DROP,
     CONF_CIW_MANAGERS,
     CONF_CONTROLLER,
     CONF_CONTROLLERS,
@@ -363,27 +357,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
-    def validate_baseline_drop(self, screen_id, mask_id, mode_str, baseline_drop):
-        if baseline_drop is None:
-            return True
-        mode = CIW_ASPECT_RATIO_MODE_MAP[mode_str]
-        screen_config = self.config_entry.data[CONF_COVERS][screen_id]
-        mask_config = self.config_entry.data[CONF_COVERS][mask_id]
-        image_def = image_def_from_config(screen_config)
-        if image_def is not None:
-            try:
-                check_baseline_drop(
-                    mode,
-                    baseline_drop,
-                    screen_config[CONF_DROP],
-                    mask_config[CONF_DROP],
-                    image_def,
-                )
-                return True
-            except ValueError as exc:
-                _LOGGER.warning(str(exc))
-        return False
-
     async def async_step_add_ciw_manager(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
@@ -392,19 +365,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             screen_id = user_input[CONF_SCREEN_COVER]
             mask_id = user_input[CONF_MASK_COVER]
-            mode_str = user_input[CONF_ASPECT_RATIO_MODE]
-            baseline_drop = user_input.get(CONF_BASELINE_DROP)
-            if self.validate_baseline_drop(screen_id, mask_id, mode_str, baseline_drop):
-                self.data[CONF_CIW_MANAGERS][make_id()] = {
-                    CONF_NAME: user_input[CONF_NAME],
-                    CONF_SCREEN_COVER: screen_id,
-                    CONF_MASK_COVER: mask_id,
-                    CONF_ASPECT_RATIO_MODE: mode_str,
-                    CONF_BASELINE_DROP: baseline_drop,
-                }
-                return self.async_create_entry(title="", data=self.data)
-            else:
-                errors[CONF_BASELINE_DROP] = "invalid_baseline_drop"
+            self.data[CONF_CIW_MANAGERS][make_id()] = {
+                CONF_NAME: user_input[CONF_NAME],
+                CONF_SCREEN_COVER: screen_id,
+                CONF_MASK_COVER: mask_id,
+            }
+            return self.async_create_entry(title="", data=self.data)
 
         next_num = len(self.data[CONF_CIW_MANAGERS]) + 1
 
@@ -413,10 +379,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Required(CONF_NAME, default=f"CIW Manager {next_num}"): str,  # type: ignore
                 vol.Required(CONF_SCREEN_COVER): vol.In(self.valid_screen_covers),
                 vol.Required(CONF_MASK_COVER): vol.In(self.valid_mask_covers),
-                vol.Required(CONF_ASPECT_RATIO_MODE): vol.In(
-                    CIW_ASPECT_RATIO_MODE_MAP.keys()
-                ),
-                vol.Optional(CONF_BASELINE_DROP): vol.Coerce(float),
             }
         )
 

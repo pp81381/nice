@@ -10,14 +10,13 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from nicett6.ciw_helper import ImageDef
-from nicett6.ciw_manager import CIWAspectRatioMode, CIWManager
-from nicett6.cover import Cover, TT6Cover
+from nicett6.ciw_manager import CIWManager
 from nicett6.cover_manager import CoverManager
+from nicett6.tt6_cover import Cover, TT6Cover
 from nicett6.ttbus_device import TTBusDeviceAddress
 from nicett6.utils import AsyncObservable, AsyncObserver
-
-from homeassistant.helpers import device_registry as dr
 
 from .const import (
     CHOICE_ASPECT_RATIO_2_35_1,
@@ -25,9 +24,6 @@ from .const import (
     CHOICE_ASPECT_RATIO_16_9,
     CHOICE_ASPECT_RATIO_OTHER,
     CONF_ADDRESS,
-    CONF_ASPECT_RATIO,
-    CONF_ASPECT_RATIO_MODE,
-    CONF_BASELINE_DROP,
     CONF_CIW_MANAGERS,
     CONF_CONTROLLER,
     CONF_CONTROLLERS,
@@ -50,12 +46,6 @@ from .const import (
     SERVICE_SET_ASPECT_RATIO,
 )
 
-CIW_ASPECT_RATIO_MODE_MAP = {
-    "FIXED_TOP": CIWAspectRatioMode.FIXED_TOP,
-    "FIXED_MIDDLE": CIWAspectRatioMode.FIXED_MIDDLE,
-    "FIXED_BOTTOM": CIWAspectRatioMode.FIXED_BOTTOM,
-}
-
 PLATFORMS = ["cover", "sensor"]
 
 _LOGGER = logging.getLogger(__name__)
@@ -68,7 +58,12 @@ async def _await_cancel(task):
 
 
 class NiceControllerWrapper:
-    def __init__(self, name, controller, message_tracker_task):
+    def __init__(
+        self,
+        name: str,
+        controller: CoverManager,
+        message_tracker_task: asyncio.Task,
+    ) -> None:
         self.name = name
         self._controller = controller
         self._message_tracker_task = message_tracker_task
@@ -88,7 +83,7 @@ class NiceControllerWrapper:
         wrapper._start_listener(hass)
         return wrapper
 
-    def _start_listener(self, hass: HomeAssistant):
+    def _start_listener(self, hass: HomeAssistant) -> None:
         async def handle_stop(event):
             _LOGGER.debug(f"Stop Event for Nice Controller {self.name}")
             await self._close()
@@ -104,7 +99,7 @@ class NiceControllerWrapper:
         await _await_cancel(self._message_tracker_task)
         await self._controller.close()
 
-    async def close(self):
+    async def close(self) -> None:
         _LOGGER.debug(f"Closing Nice Controller {self.name}")
         if self._undo_listener is not None:
             self._undo_listener()
@@ -171,8 +166,6 @@ class NiceData:
                 self.tt6_covers[config[CONF_MASK_COVER]]["tt6_cover"],
                 self.tt6_covers[config[CONF_SCREEN_COVER]]["image_def"],
             ),
-            "mode": CIW_ASPECT_RATIO_MODE_MAP[config[CONF_ASPECT_RATIO_MODE]],
-            "baseline_drop": config[CONF_BASELINE_DROP],
         }
 
     async def close(self):
@@ -263,42 +256,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             SERVICE_APPLY_PRESET,
             apply_preset,
             schema=SERVICE_APPLY_PRESET_SCHEMA,
-        )
-
-    async def set_aspect_ratio(call) -> None:
-        """Service call to set the aspect ratio of a CIWManager."""
-        for ciw in nd.ciw_mgrs.values():
-            if ciw[CONF_NAME] == call.data.get(CONF_NAME):
-                mgr: CIWManager = ciw["ciw_manager"]
-                mode: CIWAspectRatioMode = ciw["mode"]
-                baseline_drop = ciw["baseline_drop"]
-                if baseline_drop is None:
-                    baseline_drop = mgr.default_baseline_drop(mode)
-                await mgr.send_set_aspect_ratio(
-                    call.data.get(CONF_ASPECT_RATIO),
-                    mode,
-                    baseline_drop,
-                )
-
-    if CONF_CIW_MANAGERS in entry.options:
-        names = [
-            config[CONF_NAME] for config in entry.options[CONF_CIW_MANAGERS].values()
-        ]
-        SERVICE_SET_ASPECT_RATIO_SCHEMA = vol.Schema(
-            {
-                vol.Required(CONF_NAME): vol.In(names),
-                vol.Required(CONF_ASPECT_RATIO): vol.All(
-                    vol.Coerce(float),
-                    vol.Range(min=0.4, max=3.5),
-                    msg="invalid aspect ratio",
-                ),
-            }
-        )
-        hass.services.async_register(
-            DOMAIN,
-            SERVICE_SET_ASPECT_RATIO,
-            set_aspect_ratio,
-            schema=SERVICE_SET_ASPECT_RATIO_SCHEMA,
         )
 
     return True

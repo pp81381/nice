@@ -8,7 +8,7 @@ from homeassistant.components.cover import (
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity import get_device_class
 from homeassistant.util import slugify
-from nicett6.cover import TT6Cover
+from nicett6.tt6_cover import TT6Cover
 
 from . import EntityUpdater, NiceData
 from .const import DOMAIN, SERVICE_SET_DROP_PERCENT

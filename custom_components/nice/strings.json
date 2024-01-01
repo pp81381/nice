@@ -74,9 +74,7 @@
         "data": {
           "name": "Name of CIW Manager",
           "screen_cover": "Screen",
-          "mask_cover": "Mask",
-          "aspect_ratio_mode": "Aspect Ratio Mode",
-          "baseline_drop": "Baseline Drop"
+          "mask_cover": "Mask"
         }
       },
       "del_ciw_manager": {
@@ -112,7 +110,6 @@
     "error": {
       "duplicate_name": "Duplicate name entered",
       "no_covers_selected": "No Covers Selected",
-      "invalid_baseline_drop": "Invalid Baseline Drop",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {

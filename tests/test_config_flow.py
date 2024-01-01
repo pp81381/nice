@@ -3,27 +3,20 @@ from __future__ import annotations
 
 import uuid
 from contextlib import asynccontextmanager
-from collections.abc import AsyncGenerator
 from typing import Any
-from unittest.mock import MagicMock, patch
 
 import pytest
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_UNIT_SYSTEM_METRIC
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResultType, FlowResult, FlowHandler
-from homeassistant.helpers.entity_registry import (
-    async_entries_for_config_entry,
-    async_get as get_entity_registry,
-)
+from homeassistant.data_entry_flow import FlowHandler, FlowResult, FlowResultType
+from homeassistant.helpers.entity_registry import async_entries_for_config_entry
+from homeassistant.helpers.entity_registry import async_get as get_entity_registry
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from voluptuous import MultipleInvalid
 
-from custom_components.nice.config_flow import (
-    ConfigFlow as NiceConfigFlow,
-    OptionsFlowHandler,
-    make_id,
-)
+from custom_components.nice.config_flow import ConfigFlow as NiceConfigFlow
+from custom_components.nice.config_flow import OptionsFlowHandler, make_id
 from custom_components.nice.const import (
     ACTION_ADD_CIW,
     ACTION_ADD_PRESET,
@@ -42,7 +35,6 @@ CONTROLLER_1_ID = "controller_1_id"
 COVER_1_ID = "cover_1_id"
 COVER_2_ID = "cover_2_id"
 CIW_1_ID = "ciw_1_id"
-CIW_2_ID = "ciw_2_id"
 PRESET_1_ID = "preset_1_id"
 PRESET_2_ID = "preset_2_id"
 
@@ -114,16 +106,6 @@ TEST_CIW_MANAGER_1 = {
     "name": "CIW Manager 1",
     "screen_cover": COVER_1_ID,
     "mask_cover": COVER_2_ID,
-    "aspect_ratio_mode": "FIXED_MIDDLE",
-    "baseline_drop": None,
-}
-
-TEST_CIW_MANAGER_2 = {
-    "name": "CIW Manager 2",
-    "screen_cover": COVER_1_ID,
-    "mask_cover": COVER_2_ID,
-    "aspect_ratio_mode": "FIXED_BOTTOM",
-    "baseline_drop": 1.0,
 }
 
 TEST_PARTIAL_PRESET_1_NO_DROPS = {
@@ -181,13 +163,12 @@ async def _dummy_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
 
 @pytest.fixture(autouse=True)
-def no_reload():
+def no_reload(mocker):
     """To ensure a clean teardown."""
-    with patch(
+    return mocker.patch(
         "custom_components.nice._async_update_listener",
         new=_dummy_update_listener,
-    ):
-        yield
+    )
 
 
 @pytest.fixture
@@ -215,7 +196,7 @@ def config_flow_state_override(config_data):
 
 
 @pytest.fixture
-async def init_config_flow(hass: HomeAssistant, config_flow_state_override):
+async def init_config_flow(mocker, hass: HomeAssistant, config_flow_state_override):
     step_id = config_flow_state_override["step_id"]
 
     async def async_step_setup_test(
@@ -226,14 +207,13 @@ async def init_config_flow(hass: HomeAssistant, config_flow_state_override):
         self.data = config_flow_state_override["data"]
         if config_flow_state_override["tmp"] is not None:
             self.tmp = config_flow_state_override["tmp"]
-        method = f"async_step_{step_id}"
-        return await getattr(self, method)(None)
+        return await getattr(self, f"async_step_{step_id}")(None)
 
-    with patch.object(NiceConfigFlow, "async_step_user", async_step_setup_test):
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN,
-            context={"source": "user"},
-        )
+    mocker.patch.object(NiceConfigFlow, "async_step_user", async_step_setup_test)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
 
     assert result.get("errors") == {}
     assert result.get("type") == FlowResultType.FORM
@@ -258,9 +238,10 @@ def options_flow_state_override():
 
 @pytest.fixture
 async def init_options_flow(
+    mocker,
+    options_flow_state_override,
     hass: HomeAssistant,
     config_entry,
-    options_flow_state_override,
 ):
     step_id = options_flow_state_override["step_id"]
 
@@ -273,11 +254,11 @@ async def init_options_flow(
             self.tmp_drops_to_define = options_flow_state_override[
                 "tmp_drops_to_define"
             ]
-        method = f"async_step_{step_id}"
-        return await getattr(self, method)(None)
+        return await getattr(self, f"async_step_{step_id}")(None)
 
-    with patch.object(OptionsFlowHandler, "async_step_init", async_step_setup_test):
-        result = await hass.config_entries.options.async_init(config_entry.entry_id)
+    mocker.patch.object(OptionsFlowHandler, "async_step_init", async_step_setup_test)
+
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
 
     assert result.get("errors") == {}
     assert result.get("type") == FlowResultType.FORM
@@ -293,24 +274,23 @@ async def options_flow_id(init_options_flow):
 
 @pytest.fixture()
 async def config_entry(
+    mocker,
     hass: HomeAssistant,
     config_data,
     options_data,
-) -> AsyncGenerator[MockConfigEntry, None]:
-    with patch(
-        "nicett6.multiplexer.create_serial_connection",
-        return_value=[MagicMock(), MagicMock()],
-    ):
-        config_entry = MockConfigEntry(
-            domain=DOMAIN,
-            unique_id="my_unique_id",
-            data=config_data,
-            options=options_data,
-        )
-        config_entry.add_to_hass(hass)
-        assert await hass.config_entries.async_setup(config_entry.entry_id)
-        await hass.async_block_till_done()
-        yield config_entry
+) -> MockConfigEntry:
+    mocker.patch("custom_components.nice.CoverManager", autospec=True, spec_set=True)
+
+    config_entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="my_unique_id",
+        data=config_data,
+        options=options_data,
+    )
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    return config_entry
 
 
 @pytest.fixture
@@ -451,12 +431,12 @@ def options_add_drop_for_mask(options_flow_state_override):
     options_flow_state_override["tmp_drops_to_define"].append(COVER_2_ID)
 
 
-async def test_make_id():
-    with patch(
+async def test_make_id(mocker):
+    mocker.patch(
         "custom_components.nice.config_flow.uuid4",
         return_value=uuid.UUID("12345678123456781234567812345678"),
-    ):
-        id = make_id()
+    )
+    id = make_id()
     assert id == "12345678_1234_5678_1234_567812345678"
 
 
@@ -478,9 +458,7 @@ async def test_define(
     """Test define step."""
     result = await hass.config_entries.flow.async_configure(
         config_flow_id,
-        {
-            "title": TEST_TITLE,
-        },
+        {"title": TEST_TITLE},
     )
     await hass.async_block_till_done()
 
@@ -493,24 +471,27 @@ async def test_define(
 
 
 async def test_controller_valid_port(
+    mocker,
     hass: HomeAssistant,
     config_step_controller,
     config_set_unit_system_metric,
     config_flow_id,
 ) -> None:
     """Test valid serial port."""
-    with patch(
+    mocker.patch(
         "custom_components.nice.config_flow.open_connection",
         new=dummy_open_connection,
-    ), patch(
+    )
+    mocker.patch(
         "custom_components.nice.config_flow.make_id",
         return_value=CONTROLLER_1_ID,
-    ):
-        result = await hass.config_entries.flow.async_configure(
-            config_flow_id,
-            CONTROLLER_INPUT,
-        )
-        await hass.async_block_till_done()
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        config_flow_id,
+        CONTROLLER_INPUT,
+    )
+    await hass.async_block_till_done()
 
     assert result.get("errors") == {}
     assert result.get("type") == FlowResultType.FORM
@@ -525,24 +506,27 @@ async def test_controller_valid_port(
 
 
 async def test_controller_invalid_port(
+    mocker,
     hass: HomeAssistant,
     config_step_controller,
     config_set_unit_system_metric,
     config_flow_id,
 ) -> None:
     """Test invalid serial port."""
-    with patch(
+    mocker.patch(
         "custom_components.nice.config_flow.open_connection",
         side_effect=ValueError,
-    ), patch(
+    )
+    mocker.patch(
         "custom_components.nice.config_flow.make_id",
         return_value=CONTROLLER_1_ID,
-    ):
-        result = await hass.config_entries.flow.async_configure(
-            config_flow_id,
-            CONTROLLER_INPUT,
-        )
-        await hass.async_block_till_done()
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        config_flow_id,
+        CONTROLLER_INPUT,
+    )
+    await hass.async_block_till_done()
 
     assert result.get("errors") == {"base": "cannot_connect"}
     assert result.get("type") == FlowResultType.FORM
@@ -550,6 +534,7 @@ async def test_controller_invalid_port(
 
 
 async def test_cover_with_image_area(
+    mocker,
     hass: HomeAssistant,
     config_step_cover,
     config_set_unit_system_metric,
@@ -557,15 +542,16 @@ async def test_cover_with_image_area(
     config_flow_id,
 ) -> None:
     """Test a cover with an image area."""
-    with patch(
+    mocker.patch(
         "custom_components.nice.config_flow.make_id",
         return_value=COVER_1_ID,
-    ):
-        result = await hass.config_entries.flow.async_configure(
-            config_flow_id,
-            SCREEN_COVER_INPUT,
-        )
-        await hass.async_block_till_done()
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        config_flow_id,
+        SCREEN_COVER_INPUT,
+    )
+    await hass.async_block_till_done()
 
     assert result.get("errors") == {}
     assert result.get("type") == FlowResultType.FORM
@@ -577,6 +563,7 @@ async def test_cover_with_image_area(
 
 
 async def test_cover_without_image_area(
+    mocker,
     hass: HomeAssistant,
     config_step_cover,
     config_set_unit_system_metric,
@@ -584,15 +571,16 @@ async def test_cover_without_image_area(
     config_flow_id,
 ) -> None:
     """Test a cover without an image area."""
-    with patch(
+    mocker.patch(
         "custom_components.nice.config_flow.make_id",
         return_value=COVER_2_ID,
-    ):
-        result = await hass.config_entries.flow.async_configure(
-            config_flow_id,
-            MASK_COVER_INPUT,
-        )
-        await hass.async_block_till_done()
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        config_flow_id,
+        MASK_COVER_INPUT,
+    )
+    await hass.async_block_till_done()
 
     assert result.get("errors") == {}
     assert result.get("type") == FlowResultType.FORM
@@ -713,6 +701,7 @@ async def test_image_area_other_missing(
 
 
 async def test_finish_cover(
+    mocker,
     hass: HomeAssistant,
     config_step_finish_cover,
     config_set_title,
@@ -722,15 +711,16 @@ async def test_finish_cover(
     config_flow_id,
 ) -> None:
     """Test finishing a cover."""
-    with patch(
+    mock_setup_entry = mocker.patch(
         "custom_components.nice.async_setup_entry",
         return_value=True,
-    ) as mock_setup_entry:
-        result = await hass.config_entries.flow.async_configure(
-            config_flow_id,
-            {"add_another": False},
-        )
-        await hass.async_block_till_done()
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        config_flow_id,
+        {"add_another": False},
+    )
+    await hass.async_block_till_done()
 
     assert result.get("type") == FlowResultType.CREATE_ENTRY
     assert result.get("title") == TEST_TITLE
@@ -986,7 +976,8 @@ async def test_menu_del_preset_with_existing(
     assert result.get("step_id") == "del_preset"
 
 
-async def test_add_ciw_no_baseline_drop(
+async def test_add_ciw(
+    mocker,
     hass: HomeAssistant,
     options_step_add_ciw_manager,
     config_add_controller_1,
@@ -995,19 +986,19 @@ async def test_add_ciw_no_baseline_drop(
     options_flow_id,
 ) -> None:
     """Test Add CIW action."""
-    with patch(
+    mocker.patch(
         "custom_components.nice.config_flow.make_id",
         return_value=CIW_1_ID,
-    ):
-        result = await hass.config_entries.options.async_configure(
-            options_flow_id,
-            user_input={
-                "name": "CIW Manager 1",
-                "screen_cover": COVER_1_ID,
-                "mask_cover": COVER_2_ID,
-                "aspect_ratio_mode": "FIXED_MIDDLE",
-            },
-        )
+    )
+
+    result = await hass.config_entries.options.async_configure(
+        options_flow_id,
+        user_input={
+            "name": "CIW Manager 1",
+            "screen_cover": COVER_1_ID,
+            "mask_cover": COVER_2_ID,
+        },
+    )
 
     assert result.get("type") == FlowResultType.CREATE_ENTRY
     assert result.get("title") == ""
@@ -1018,69 +1009,8 @@ async def test_add_ciw_no_baseline_drop(
     }
 
 
-async def test_add_ciw_with_baseline_drop(
-    hass: HomeAssistant,
-    options_step_add_ciw_manager,
-    config_add_controller_1,
-    config_add_screen,
-    config_add_mask,
-    options_flow_id,
-) -> None:
-    """Test Add CIW action."""
-    with patch(
-        "custom_components.nice.config_flow.make_id",
-        return_value=CIW_2_ID,
-    ):
-        result = await hass.config_entries.options.async_configure(
-            options_flow_id,
-            user_input={
-                "name": "CIW Manager 2",
-                "screen_cover": COVER_1_ID,
-                "mask_cover": COVER_2_ID,
-                "aspect_ratio_mode": "FIXED_BOTTOM",
-                "baseline_drop": 1.0,
-            },
-        )
-
-    assert result.get("type") == FlowResultType.CREATE_ENTRY
-    assert result.get("title") == ""
-    assert result.get("result") == True
-    assert result.get("data") == {
-        "ciw_managers": {CIW_2_ID: TEST_CIW_MANAGER_2},
-        "presets": {},
-    }
-
-
-async def test_add_ciw_with_invalid_baseline_drop(
-    hass: HomeAssistant,
-    options_step_add_ciw_manager,
-    config_add_controller_1,
-    config_add_screen,
-    config_add_mask,
-    options_flow_id,
-) -> None:
-    """Test Add CIW action."""
-    with patch(
-        "custom_components.nice.config_flow.make_id",
-        return_value=CIW_2_ID,
-    ):
-        result = await hass.config_entries.options.async_configure(
-            options_flow_id,
-            user_input={
-                "name": "CIW Manager 2",
-                "screen_cover": COVER_1_ID,
-                "mask_cover": COVER_2_ID,
-                "aspect_ratio_mode": "FIXED_BOTTOM",
-                "baseline_drop": 0.2,
-            },
-        )
-
-    assert result.get("errors") == {"baseline_drop": "invalid_baseline_drop"}
-    assert result.get("type") == FlowResultType.FORM
-    assert result.get("step_id") == "add_ciw_manager"
-
-
 async def test_add_preset(
+    mocker,
     hass: HomeAssistant,
     options_step_add_preset,
     config_add_controller_1,
@@ -1089,17 +1019,18 @@ async def test_add_preset(
     options_flow_id,
 ) -> None:
     """Test Add Preset action."""
-    with patch(
+    mocker.patch(
         "custom_components.nice.config_flow.make_id",
         return_value=PRESET_1_ID,
-    ):
-        result = await hass.config_entries.options.async_configure(
-            options_flow_id,
-            user_input={
-                "name": "Preset 1",
-                "select": [COVER_1_ID, COVER_2_ID],
-            },
-        )
+    )
+
+    result = await hass.config_entries.options.async_configure(
+        options_flow_id,
+        user_input={
+            "name": "Preset 1",
+            "select": [COVER_1_ID, COVER_2_ID],
+        },
+    )
 
     assert result.get("errors") == {}
     assert result.get("type") == FlowResultType.FORM
