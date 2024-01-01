@@ -9,7 +9,7 @@ from typing import Any, Awaitable, Callable
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME, EVENT_HOMEASSISTANT_STOP
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from nicett6.ciw_helper import ImageDef
 from nicett6.ciw_manager import CIWManager
@@ -43,7 +43,6 @@ from .const import (
     CONF_SERIAL_PORT,
     DOMAIN,
     SERVICE_APPLY_PRESET,
-    SERVICE_SET_ASPECT_RATIO,
 )
 
 PLATFORMS = ["cover", "sensor"]
@@ -58,32 +57,18 @@ async def _await_cancel(task):
 
 
 class NiceControllerWrapper:
-    def __init__(
-        self,
-        name: str,
-        controller: CoverManager,
-        message_tracker_task: asyncio.Task,
-    ) -> None:
+    def __init__(self, name: str, serial_port: str) -> None:
         self.name = name
-        self._controller = controller
-        self._message_tracker_task = message_tracker_task
-        self._undo_listener = None
+        self._controller = CoverManager(serial_port)
+        self._message_tracker_task: asyncio.Task | None = None
+        self._undo_listener: CALLBACK_TYPE | None = None
 
-    @staticmethod
-    async def open(
-        hass: HomeAssistant,
-        name: str,
-        serial_port: str,
-    ) -> NiceControllerWrapper:
-        """Factory"""
-        controller = CoverManager(serial_port)
-        await controller.open()
-        message_tracker_task = asyncio.create_task(controller.message_tracker())
-        wrapper = NiceControllerWrapper(name, controller, message_tracker_task)
-        wrapper._start_listener(hass)
-        return wrapper
+    async def start(self, hass: HomeAssistant):
+        await self._controller.open()
+        self._message_tracker_task = asyncio.create_task(
+            self._controller.message_tracker()
+        )
 
-    def _start_listener(self, hass: HomeAssistant) -> None:
         async def handle_stop(event):
             _LOGGER.debug(f"Stop Event for Nice Controller {self.name}")
             await self._close()
@@ -106,6 +91,15 @@ class NiceControllerWrapper:
         await self._close()
 
 
+async def make_nice_controller_wrapper(
+    hass: HomeAssistant, name: str, serial_port: str
+) -> NiceControllerWrapper:
+    """Factory for NiceControllerWrapper objects"""
+    wrapper = NiceControllerWrapper(name, serial_port)
+    await wrapper.start(hass)
+    return wrapper
+
+
 def image_aspect_ratio_from_config_params(choice: str, other: float) -> float:
     if choice == CHOICE_ASPECT_RATIO_16_9:
         return 16 / 9
@@ -119,8 +113,8 @@ def image_aspect_ratio_from_config_params(choice: str, other: float) -> float:
         raise ValueError("Invalid aspect ratio choice")
 
 
-def image_def_from_config(config):
-    image_config = config[CONF_IMAGE_AREA]
+def image_def_from_config(cover_config) -> ImageDef | None:
+    image_config = cover_config[CONF_IMAGE_AREA]
     if image_config is not None:
         return ImageDef(
             image_config[CONF_IMAGE_BORDER_BELOW],
@@ -141,30 +135,30 @@ class NiceData:
         self.ciw_mgrs: dict[str, dict[str, Any]] = {}
 
     async def add_controller(self, hass, id, config):
-        controller = await NiceControllerWrapper.open(
+        controller = await make_nice_controller_wrapper(
             hass, config[CONF_NAME], config[CONF_SERIAL_PORT]
         )
         self.controllers[id] = controller
 
-    async def add_cover(self, id, config):
-        controller = self.controllers[config[CONF_CONTROLLER]]
+    async def add_cover(self, id, cover_config):
+        controller = self.controllers[cover_config[CONF_CONTROLLER]]
         tt6_cover = await controller.add_cover(
-            TTBusDeviceAddress(config[CONF_ADDRESS], config[CONF_NODE]),
-            Cover(config[CONF_NAME], config[CONF_DROP]),
+            TTBusDeviceAddress(cover_config[CONF_ADDRESS], cover_config[CONF_NODE]),
+            Cover(cover_config[CONF_NAME], cover_config[CONF_DROP]),
         )
         self.tt6_covers[id] = {
             "tt6_cover": tt6_cover,
-            "image_def": image_def_from_config(config),
+            "image_def": image_def_from_config(cover_config),
         }
 
-    def add_ciw_manager(self, id, config):
+    def add_ciw_manager(self, id, ciw_config):
         self.ciw_mgrs[id] = {
-            "name": config[CONF_NAME],
-            "screen_cover_id": config[CONF_SCREEN_COVER],
+            "name": ciw_config[CONF_NAME],
+            "screen_cover_id": ciw_config[CONF_SCREEN_COVER],
             "ciw_manager": CIWManager(
-                self.tt6_covers[config[CONF_SCREEN_COVER]]["tt6_cover"],
-                self.tt6_covers[config[CONF_MASK_COVER]]["tt6_cover"],
-                self.tt6_covers[config[CONF_SCREEN_COVER]]["image_def"],
+                self.tt6_covers[ciw_config[CONF_SCREEN_COVER]]["tt6_cover"],
+                self.tt6_covers[ciw_config[CONF_MASK_COVER]]["tt6_cover"],
+                self.tt6_covers[ciw_config[CONF_SCREEN_COVER]]["image_def"],
             ),
         }
 
@@ -266,8 +260,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug("nice async_unload_entry")
     if hass.services.has_service(DOMAIN, SERVICE_APPLY_PRESET):
         hass.services.async_remove(DOMAIN, SERVICE_APPLY_PRESET)
-    if hass.services.has_service(DOMAIN, SERVICE_SET_ASPECT_RATIO):
-        hass.services.async_remove(DOMAIN, SERVICE_SET_ASPECT_RATIO)
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:

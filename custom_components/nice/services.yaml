@@ -1,26 +1,18 @@
 apply_preset:
-  name: Apply Preset
-  description: Move a set of covers to preset positions.
   fields:
     name:
-      name: Name
-      description: The name of the preset.
       required: true
       example: Preset 1
       selector:
         text:
 
 set_drop_percent:
-  name: Set Cover Drop Percent
-  description: Set the Cover to the specified drop in percent
   target:
     entity:
       integration: nice
       domain: cover
   fields:
     drop_percent:
-      name: Drop Percent
-      description: The drop in percent (accuracy 0.1%)
       required: true
       example: 82.5
       selector:
@@ -28,3 +20,40 @@ set_drop_percent:
           min: 0.0
           max: 100.0
           mode: box
+
+send_simple_command:
+  target:
+    entity:
+      integration: nice
+      domain: cover
+  fields:
+    cmd_name:
+      required: true
+      example: "MOVE_UP"
+      selector:
+        select:
+          translation_key: "simple_command"
+          options:
+            - "STOP"
+            - "MOVE_DOWN"
+            - "MOVE_UP"
+            - "MOVE_POS_1"
+            - "MOVE_POS_2"
+            - "MOVE_POS_3"
+            - "MOVE_POS_4"
+            - "MOVE_POS_5"
+            - "MOVE_POS_6"
+            - "MOVE_UP_STEP"
+            - "MOVE_DOWN_STEP"
+            - "STORE_POS_1"
+            - "STORE_POS_2"
+            - "STORE_POS_3"
+            - "STORE_POS_4"
+            - "STORE_POS_5"
+            - "STORE_POS_6"
+            - "DEL_POS_1"
+            - "DEL_POS_2"
+            - "DEL_POS_3"
+            - "DEL_POS_4"
+            - "DEL_POS_5"
+            - "DEL_POS_6"
