@@ -119,29 +119,29 @@
   "selector": {
     "simple_command": {
       "options": {
-        "STOP": "Stop",
-        "MOVE_DOWN": "Move Down",
-        "MOVE_UP": "Move Up",
-        "MOVE_POS_1": "Move to built-in preset 1",
-        "MOVE_POS_2": "Move to built-in preset 2",
-        "MOVE_POS_3": "Move to built-in preset 3",
-        "MOVE_POS_4": "Move to built-in preset 4",
-        "MOVE_POS_5": "Move to built-in preset 5",
-        "MOVE_POS_6": "Move to built-in preset 6",
-        "MOVE_UP_STEP": "Move up a step",
-        "MOVE_DOWN_STEP": "Move down a step",
-        "STORE_POS_1": "Store built-in preset 1",
-        "STORE_POS_2": "Store built-in preset 2",
-        "STORE_POS_3": "Store built-in preset 3",
-        "STORE_POS_4": "Store built-in preset 4",
-        "STORE_POS_5": "Store built-in preset 5",
-        "STORE_POS_6": "Store built-in preset 6",
-        "DEL_POS_1": "Delete built-in preset 1",
-        "DEL_POS_2": "Delete built-in preset 2",
-        "DEL_POS_3": "Delete built-in preset 3",
-        "DEL_POS_4": "Delete built-in preset 4",
-        "DEL_POS_5": "Delete built-in preset 5",
-        "DEL_POS_6": "Delete built-in preset 6"
+        "stop": "Stop",
+        "move_down": "Move down",
+        "move_up": "Move up",
+        "move_pos_1": "Move to built-in preset 1",
+        "move_pos_2": "Move to built-in preset 2",
+        "move_pos_3": "Move to built-in preset 3",
+        "move_pos_4": "Move to built-in preset 4",
+        "move_pos_5": "Move to built-in preset 5",
+        "move_pos_6": "Move to built-in preset 6",
+        "move_up_step": "Move up a step",
+        "move_down_step": "Move down a step",
+        "store_pos_1": "Store current position in built-in preset 1",
+        "store_pos_2": "Store current position in built-in preset 2",
+        "store_pos_3": "Store current position in built-in preset 3",
+        "store_pos_4": "Store current position in built-in preset 4",
+        "store_pos_5": "Store current position in built-in preset 5",
+        "store_pos_6": "Store current position in built-in preset 6",
+        "del_pos_1": "Delete built-in preset 1",
+        "del_pos_2": "Delete built-in preset 2",
+        "del_pos_3": "Delete built-in preset 3",
+        "del_pos_4": "Delete built-in preset 4",
+        "del_pos_5": "Delete built-in preset 5",
+        "del_pos_6": "Delete built-in preset 6"
       }
     }
   },
@@ -170,7 +170,7 @@
       "name": "Send Simple Command",
       "description": "Send a Simple Command to the specified Cover",
       "fields": {
-        "cmd_name": {
+        "command": {
           "name": "Command name",
           "description": "The name of the Simple Command to send"
         }

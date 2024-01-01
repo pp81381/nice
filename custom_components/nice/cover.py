@@ -40,9 +40,10 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         "async_set_drop_percent",
     )
 
+    simple_commands = [cn.lower() for cn in simple_command_code_names()]
     platform.async_register_entity_service(
         SERVICE_SEND_SIMPLE_COMMAND,
-        {vol.Required("cmd_name"): vol.In(simple_command_code_names())},
+        {vol.Required("command"): vol.In(simple_commands)},
         "async_send_simple_command",
     )
 
@@ -73,17 +74,17 @@ class NiceCover(CoverEntity):
 
     async def async_open_cover(self, **kwargs) -> None:
         """Open the cover."""
-        cmd_name: str = "MOVE_DOWN" if self._is_reversed() else "MOVE_UP"
-        await self._tt6_cover.send_simple_command(cmd_name)
+        cmd_name: str = "move_down" if self._is_reversed() else "move_up"
+        await self.async_send_simple_command(cmd_name)
 
     async def async_close_cover(self, **kwargs) -> None:
         """Close the cover"""
-        cmd_name: str = "MOVE_UP" if self._is_reversed() else "MOVE_DOWN"
-        await self._tt6_cover.send_simple_command(cmd_name)
+        cmd_name: str = "move_up" if self._is_reversed() else "move_down"
+        await self.async_send_simple_command(cmd_name)
 
     async def async_stop_cover(self, **kwargs) -> None:
         """Stop the cover"""
-        await self._tt6_cover.send_simple_command("STOP")
+        await self.async_send_simple_command("stop")
 
     async def async_set_cover_position(self, **kwargs) -> None:
         """Set the cover to an int position"""
@@ -94,9 +95,9 @@ class NiceCover(CoverEntity):
         pct: float = 100.0 - drop_percent if self._is_reversed() else drop_percent
         await self._tt6_cover.send_drop_pct_command(pct / 100.0)
 
-    async def async_send_simple_command(self, cmd_name: str) -> None:
+    async def async_send_simple_command(self, command: str) -> None:
         """Send a simple command to the Cover"""
-        await self._tt6_cover.send_simple_command(cmd_name)
+        await self._tt6_cover.send_simple_command(command.upper())
 
     async def async_added_to_hass(self):
         """Register device notification."""
