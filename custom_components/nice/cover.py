@@ -20,11 +20,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     data: NiceData = hass.data[DOMAIN][config_entry.entry_id]
 
     entities = [
-        NiceCover(
-            slugify(id),
-            item["tt6_cover"],
-        )
-        for id, item in data.tt6_covers.items()
+        NiceCover(slugify(id), item.tt6_cover, item.has_reverse_semantics)
+        for id, item in data.nice_covers.items()
     ]
     async_add_entities(entities)
 
@@ -51,10 +48,13 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 class NiceCover(CoverEntity):
     """Representation of a cover"""
 
-    def __init__(self, cover_id, tt6_cover: TT6Cover) -> None:
+    def __init__(
+        self, cover_id: str, tt6_cover: TT6Cover, has_reverse_semantics: bool
+    ) -> None:
         """Create HA entity representing a cover"""
         self._attr_unique_id = cover_id
         self._tt6_cover: TT6Cover = tt6_cover
+        self._has_reverse_semantics = has_reverse_semantics
         self._attr_has_entity_name = True
         self._attr_name = None
         self._attr_is_closed = None  # Not initialised by CoverEntity
@@ -69,17 +69,14 @@ class NiceCover(CoverEntity):
             | CoverEntityFeature.SET_POSITION
         )
 
-    def _is_reversed(self) -> bool:
-        return get_device_class(self.hass, self.entity_id) == "screen"
-
     async def async_open_cover(self, **kwargs) -> None:
         """Open the cover."""
-        cmd_name: str = "move_down" if self._is_reversed() else "move_up"
+        cmd_name = "move_down" if self._has_reverse_semantics else "move_up"
         await self.async_send_simple_command(cmd_name)
 
     async def async_close_cover(self, **kwargs) -> None:
         """Close the cover"""
-        cmd_name: str = "move_up" if self._is_reversed() else "move_down"
+        cmd_name = "move_up" if self._has_reverse_semantics else "move_down"
         await self.async_send_simple_command(cmd_name)
 
     async def async_stop_cover(self, **kwargs) -> None:
@@ -92,7 +89,7 @@ class NiceCover(CoverEntity):
 
     async def async_set_drop_percent(self, drop_percent: float) -> None:
         """Set the cover to a float position (thousandths accuracy)"""
-        pct: float = 100.0 - drop_percent if self._is_reversed() else drop_percent
+        pct = 100.0 - drop_percent if self._has_reverse_semantics else drop_percent
         await self._tt6_cover.send_drop_pct_command(pct / 100.0)
 
     async def async_send_simple_command(self, command: str) -> None:
@@ -107,16 +104,16 @@ class NiceCover(CoverEntity):
         self._tt6_cover.cover.detach(self._updater)
 
     async def handle_update(self):
-        if self._is_reversed():
+        if self._has_reverse_semantics:
             drop_percent = 100.0 - self._tt6_cover.cover.drop_pct * 100.0
-            self._attr_is_opening = self._tt6_cover.cover.is_opening
-            self._attr_is_closing = self._tt6_cover.cover.is_closing
-            self._attr_is_closed = self._tt6_cover.cover.is_closed
+            self._attr_is_opening = self._tt6_cover.cover.is_going_down
+            self._attr_is_closing = self._tt6_cover.cover.is_going_up
+            self._attr_is_closed = self._tt6_cover.cover.is_fully_up
         else:
             drop_percent = self._tt6_cover.cover.drop_pct * 100.0
-            self._attr_is_opening = self._tt6_cover.cover.is_closing
-            self._attr_is_closing = self._tt6_cover.cover.is_opening
-            self._attr_is_closed = not self._tt6_cover.cover.is_closed
+            self._attr_is_opening = self._tt6_cover.cover.is_going_up
+            self._attr_is_closing = self._tt6_cover.cover.is_going_down
+            self._attr_is_closed = not self._tt6_cover.cover.is_fully_down
         self._attr_current_cover_position = round(drop_percent)
         self._attr_extra_state_attributes = {"drop_percent": drop_percent}
         self.async_write_ha_state()

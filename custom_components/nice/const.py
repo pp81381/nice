@@ -24,7 +24,7 @@ CONF_ACTION = "action"
 CONF_SELECT = "select"
 CONF_COVER = "cover"
 CONF_DROPS = "drops"
-CONF_ASPECT_RATIO = "aspect_ratio"
+CONF_HAS_REVERSE_SEMANTICS = "has_reverse_semantics"
 
 CHOICE_ASPECT_RATIO_16_9 = "aspect_ratio_16_9"
 CHOICE_ASPECT_RATIO_2_35_1 = "aspect_ratio_2_35_1"

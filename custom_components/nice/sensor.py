@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, List
+from typing import Callable, List
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -99,7 +99,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     async_add_entities(
         [
-            NiceCIWSensor(id, entity_description, item)
+            NiceCIWSensor(id, entity_description, item.screen_cover_id, item.ciw_helper)
             for id, item in data.ciw_helpers.items()
             for entity_description in ciw_sensor_descriptions
         ]
@@ -107,8 +107,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     async_add_entities(
         [
-            NiceCoverSensor(id, entity_description, item)
-            for id, item in data.tt6_covers.items()
+            NiceCoverSensor(id, entity_description, item.tt6_cover.cover)
+            for id, item in data.nice_covers.items()
             for entity_description in cover_descriptions
         ]
     )
@@ -121,17 +121,18 @@ class NiceCIWSensor(SensorEntity):
         self,
         ciw_id: str,
         entity_description: NiceCIWSensorEntityDescription,
-        data: dict[str, Any],
+        screen_cover_id: str,
+        ciw_helper: CIWHelper,
     ) -> None:
         """A Sensor for a CIWHelper property."""
         self.entity_description: NiceCIWSensorEntityDescription = entity_description
         self._attr_unique_id = f"{ciw_id}_{entity_description.key}"
         self._attr_should_poll = False
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, data["screen_cover_id"])}
+            "identifiers": {(DOMAIN, screen_cover_id)}
         }  # Image area is part of screen
         self._attr_has_entity_name = True
-        self._helper: CIWHelper = data["ciw_helper"]
+        self._helper: CIWHelper = ciw_helper
         self._updater = EntityUpdater(self.handle_update)
 
     async def async_added_to_hass(self):
@@ -155,7 +156,7 @@ class NiceCoverSensor(SensorEntity):
         self,
         cover_id: str,
         entity_description: NiceCoverSensorEntityDescription,
-        data: dict[str, Any],
+        cover: Cover,
     ) -> None:
         """A Sensor for a Cover property."""
         self.entity_description: NiceCoverSensorEntityDescription = entity_description
@@ -163,7 +164,7 @@ class NiceCoverSensor(SensorEntity):
         self._attr_should_poll = False
         self._attr_device_info = {"identifiers": {(DOMAIN, cover_id)}}
         self._attr_has_entity_name = True
-        self._cover: Cover = data["tt6_cover"].cover
+        self._cover: Cover = cover
         self._updater = EntityUpdater(self.handle_update)
 
     async def async_added_to_hass(self):

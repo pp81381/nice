@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from contextlib import suppress
+from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 
 import voluptuous as vol
@@ -11,9 +12,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers import device_registry as dr
-from nicett6.ciw_helper import CIWHelper, ImageDef
+from nicett6.ciw_helper import CIWHelper
+from nicett6.cover import Cover
 from nicett6.cover_manager import CoverManager
-from nicett6.tt6_cover import Cover, TT6Cover
+from nicett6.image_def import ImageDef
+from nicett6.tt6_cover import TT6Cover
 from nicett6.ttbus_device import TTBusDeviceAddress
 from nicett6.utils import AsyncObservable, AsyncObserver
 
@@ -30,6 +33,7 @@ from .const import (
     CONF_COVERS,
     CONF_DROP,
     CONF_DROPS,
+    CONF_HAS_REVERSE_SEMANTICS,
     CONF_IMAGE_AREA,
     CONF_IMAGE_ASPECT_RATIO_CHOICE,
     CONF_IMAGE_ASPECT_RATIO_OTHER,
@@ -127,11 +131,25 @@ def image_def_from_config(cover_config) -> ImageDef | None:
         return None
 
 
+@dataclass
+class NiceCoverData:
+    tt6_cover: TT6Cover
+    has_reverse_semantics: bool
+    image_def: ImageDef | None
+
+
+@dataclass
+class NiceCIWData:
+    name: str
+    screen_cover_id: str
+    ciw_helper: CIWHelper
+
+
 class NiceData:
     def __init__(self):
         self.controllers: dict[str, NiceControllerWrapper] = {}
-        self.tt6_covers: dict[str, dict[str, Any]] = {}
-        self.ciw_helpers: dict[str, dict[str, Any]] = {}
+        self.nice_covers: dict[str, NiceCoverData] = {}
+        self.ciw_helpers: dict[str, NiceCIWData] = {}
 
     async def add_controller(self, hass, id, config):
         controller = await make_nice_controller_wrapper(
@@ -145,25 +163,26 @@ class NiceData:
             TTBusDeviceAddress(cover_config[CONF_ADDRESS], cover_config[CONF_NODE]),
             Cover(cover_config[CONF_NAME], cover_config[CONF_DROP]),
         )
-        self.tt6_covers[id] = {
-            "tt6_cover": tt6_cover,
-            "image_def": image_def_from_config(cover_config),
-        }
+        has_reverse_semantics = cover_config.get(CONF_HAS_REVERSE_SEMANTICS, False)
+        self.nice_covers[id] = NiceCoverData(
+            tt6_cover,
+            has_reverse_semantics,
+            image_def_from_config(cover_config),
+        )
 
     def add_ciw_helper(self, id, ciw_config):
-        self.ciw_helpers[id] = {
-            "name": ciw_config[CONF_NAME],
-            "screen_cover_id": ciw_config[CONF_SCREEN_COVER],
-            "ciw_helper": CIWHelper(
-                self.tt6_covers[ciw_config[CONF_SCREEN_COVER]]["tt6_cover"],
-                self.tt6_covers[ciw_config[CONF_MASK_COVER]]["tt6_cover"],
-                self.tt6_covers[ciw_config[CONF_SCREEN_COVER]]["image_def"],
-            ),
-        }
+        screen: NiceCoverData = self.nice_covers[ciw_config[CONF_SCREEN_COVER]]
+        assert screen.image_def is not None
+        mask: NiceCoverData = self.nice_covers[ciw_config[CONF_MASK_COVER]]
+        self.ciw_helpers[id] = NiceCIWData(
+            ciw_config[CONF_NAME],
+            ciw_config[CONF_SCREEN_COVER],
+            CIWHelper(screen.tt6_cover.cover, mask.tt6_cover.cover, screen.image_def),
+        )
 
     async def close(self):
         self.ciw_helpers = {}
-        self.tt6_covers = {}
+        self.nice_covers = {}
         for controller in self.controllers.values():
             await controller.close()
         self.controllers = {}
@@ -234,7 +253,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         for preset in entry.options[CONF_PRESETS].values():
             if preset[CONF_NAME] == call.data.get(CONF_NAME):
                 for item in preset[CONF_DROPS]:
-                    tt6_cover: TT6Cover = nd.tt6_covers[item[CONF_COVER]]["tt6_cover"]
+                    tt6_cover: TT6Cover = nd.nice_covers[item[CONF_COVER]].tt6_cover
                     await tt6_cover.send_drop_pct_command(
                         1.0 - item[CONF_DROP] / tt6_cover.cover.max_drop
                     )
