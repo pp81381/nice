@@ -11,8 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers import device_registry as dr
-from nicett6.ciw_helper import ImageDef
-from nicett6.ciw_manager import CIWManager
+from nicett6.ciw_helper import CIWHelper, ImageDef
 from nicett6.cover_manager import CoverManager
 from nicett6.tt6_cover import Cover, TT6Cover
 from nicett6.ttbus_device import TTBusDeviceAddress
@@ -24,7 +23,7 @@ from .const import (
     CHOICE_ASPECT_RATIO_16_9,
     CHOICE_ASPECT_RATIO_OTHER,
     CONF_ADDRESS,
-    CONF_CIW_MANAGERS,
+    CONF_CIW_HELPERS,
     CONF_CONTROLLER,
     CONF_CONTROLLERS,
     CONF_COVER,
@@ -132,7 +131,7 @@ class NiceData:
     def __init__(self):
         self.controllers: dict[str, NiceControllerWrapper] = {}
         self.tt6_covers: dict[str, dict[str, Any]] = {}
-        self.ciw_mgrs: dict[str, dict[str, Any]] = {}
+        self.ciw_helpers: dict[str, dict[str, Any]] = {}
 
     async def add_controller(self, hass, id, config):
         controller = await make_nice_controller_wrapper(
@@ -151,11 +150,11 @@ class NiceData:
             "image_def": image_def_from_config(cover_config),
         }
 
-    def add_ciw_manager(self, id, ciw_config):
-        self.ciw_mgrs[id] = {
+    def add_ciw_helper(self, id, ciw_config):
+        self.ciw_helpers[id] = {
             "name": ciw_config[CONF_NAME],
             "screen_cover_id": ciw_config[CONF_SCREEN_COVER],
-            "ciw_manager": CIWManager(
+            "ciw_helper": CIWHelper(
                 self.tt6_covers[ciw_config[CONF_SCREEN_COVER]]["tt6_cover"],
                 self.tt6_covers[ciw_config[CONF_MASK_COVER]]["tt6_cover"],
                 self.tt6_covers[ciw_config[CONF_SCREEN_COVER]]["image_def"],
@@ -163,7 +162,7 @@ class NiceData:
         }
 
     async def close(self):
-        self.ciw_mgrs = {}
+        self.ciw_helpers = {}
         self.tt6_covers = {}
         for controller in self.controllers.values():
             await controller.close()
@@ -196,9 +195,9 @@ async def make_nice_data(hass: HomeAssistant, entry: ConfigEntry) -> NiceData:
             via_device=(DOMAIN, cover_config[CONF_CONTROLLER]),
         )
 
-    if CONF_CIW_MANAGERS in entry.options:
-        for ciw_id, ciw_config in entry.options[CONF_CIW_MANAGERS].items():
-            data.add_ciw_manager(ciw_id, ciw_config)
+    if CONF_CIW_HELPERS in entry.options:
+        for ciw_id, ciw_config in entry.options[CONF_CIW_HELPERS].items():
+            data.add_ciw_helper(ciw_id, ciw_config)
 
     return data
 

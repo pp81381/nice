@@ -27,14 +27,12 @@ The Integration offers a service called [nice.apply_preset](#niceapply_preset) w
 
 The Integration was designed with projector screens in mind and offers some optional features for controlling multiple Covers in a Constant Image Width (CIW) configuration.
 
-A Cover can optionally have an Image Area defined to represent the screen. An optional helper called a "CIW Manager" can be defined which links a Cover that is a Screen and a Cover that is a Mask. The following `sensor` entities are created for each "CIW Manager":
+A Cover can optionally have an Image Area defined to represent the screen. Then, an optional helper called a "CIW Helper" can be defined which links a Cover that is a Screen and a Cover that is a Mask. The following `sensor` entities are created for each "CIW Helper":
 
 - Image Height
 - Image Width
 - Image Diagonal
 - Aspect Ratio
-
-The Integration offers a service called [nice.set_aspect_ratio](#niceset_aspect_ratio) which will set the Covers managed by a CIW Manager to a specific Aspect Ratio.
 
 ## Sensors
 
@@ -118,16 +116,16 @@ Navigate to Configuration->Integrations, locate the Nice Integration and click o
 
 | Option             | Description                                                                                                                      |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| Add CIW Manager    | Add a CIW Manager<br>This option is shown if there is at least one Cover with an Image Area (a Screen) and one without (a Mask). |
-| Del CIW Manager    | Delete a CIW Manager<br>This option is only shown if any CIW Managers exist.                                                     |
+| Add CIW Helper     | Add a CIW Helper<br>This option is shown if there is at least one Cover with an Image Area (a Screen) and one without (a Mask).  |
+| Del CIW Helper     | Delete a CIW Helper<br>This option is only shown if any CIW Helpers exist.                                                       |
 | Add Preset         | Add a Preset                                                                                                                     |
 | Del Preset         | Delete a Preset<br>This option is only shown if any Presets exist.                                                               |
 
 Select an option and click on Submit to move to the next step.
 
-## Adding a CIW Manager
+## Adding a CIW Helper
 
-Enter the following details and then click on Submit to create the CIW Manager.
+Enter the following details and then click on Submit to create the CIW Helper.
 
 | Field             | Description                                                                                                                                                       |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -135,9 +133,9 @@ Enter the following details and then click on Submit to create the CIW Manager.
 | Screen            | Name of the screen<br>Only Covers with an Image Area can be selected                                                                                              |
 | Mask              | Name of the mask<br>Only covers without an image Area can be selected                                                                                             |
 
-## Deleting CIW Managers
+## Deleting CIW Helpers
 
-Select the CIW Manager(s) to be deleted. Click on Submit to delete them.
+Select the CIW Helper(s) to be deleted. Click on Submit to delete them.
 
 ## Adding a Preset
 

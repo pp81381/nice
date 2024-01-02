@@ -4,15 +4,14 @@ from dataclasses import dataclass
 from typing import Any, Callable, List
 
 from homeassistant.components.sensor import (
-    SensorEntity,
     SensorDeviceClass,
+    SensorEntity,
     SensorEntityDescription,
 )
 from homeassistant.const import UnitOfLength
+from homeassistant.util.unit_system import METRIC_SYSTEM
 from nicett6.ciw_helper import CIWHelper
 from nicett6.cover import Cover
-
-from homeassistant.util.unit_system import METRIC_SYSTEM
 
 from . import EntityUpdater, NiceData
 from .const import DOMAIN
@@ -101,7 +100,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     async_add_entities(
         [
             NiceCIWSensor(id, entity_description, item)
-            for id, item in data.ciw_mgrs.items()
+            for id, item in data.ciw_helpers.items()
             for entity_description in ciw_sensor_descriptions
         ]
     )
@@ -124,7 +123,7 @@ class NiceCIWSensor(SensorEntity):
         entity_description: NiceCIWSensorEntityDescription,
         data: dict[str, Any],
     ) -> None:
-        """A Sensor for a CIWManager property."""
+        """A Sensor for a CIWHelper property."""
         self.entity_description: NiceCIWSensorEntityDescription = entity_description
         self._attr_unique_id = f"{ciw_id}_{entity_description.key}"
         self._attr_should_poll = False
@@ -132,7 +131,7 @@ class NiceCIWSensor(SensorEntity):
             "identifiers": {(DOMAIN, data["screen_cover_id"])}
         }  # Image area is part of screen
         self._attr_has_entity_name = True
-        self._helper: CIWHelper = data["ciw_manager"].get_helper()
+        self._helper: CIWHelper = data["ciw_helper"]
         self._updater = EntityUpdater(self.handle_update)
 
     async def async_added_to_hass(self):

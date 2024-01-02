@@ -68,18 +68,18 @@
           "action": "Action"
         }
       },
-      "add_ciw_manager": {
-        "title": "Add a CIW Manager",
+      "add_ciw_helper": {
+        "title": "Add a CIW Helper",
         "description": "Enter the details of Constant Image Width (CIW) Projector Screen #{sequence_number}",
         "data": {
-          "name": "Name of CIW Manager",
+          "name": "Name of CIW Helper",
           "screen_cover": "Screen",
           "mask_cover": "Mask"
         }
       },
-      "del_ciw_manager": {
-        "title": "Delete CIW Manager(s)",
-        "description": "Select the CIW Manager(s) to be deleted",
+      "del_ciw_helper": {
+        "title": "Delete CIW Helper(s)",
+        "description": "Select the CIW Helper(s) to be deleted",
         "data": {
           "select": "Select names to be removed"
         }

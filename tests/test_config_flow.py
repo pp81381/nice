@@ -23,7 +23,7 @@ from custom_components.nice.const import (
     ACTION_DEL_CIW,
     ACTION_DEL_PRESET,
     CONF_ACTION,
-    CONF_CIW_MANAGERS,
+    CONF_CIW_HELPERS,
     CONF_IMAGE_ASPECT_RATIO_OTHER,
     CONF_PRESETS,
     DOMAIN,
@@ -34,7 +34,7 @@ TEST_TITLE = "Nice TT6 Test"
 CONTROLLER_1_ID = "controller_1_id"
 COVER_1_ID = "cover_1_id"
 COVER_2_ID = "cover_2_id"
-CIW_1_ID = "ciw_1_id"
+CIW_HELPER_ID = "ciw_1_id"
 PRESET_1_ID = "preset_1_id"
 PRESET_2_ID = "preset_2_id"
 
@@ -102,8 +102,8 @@ TEST_MASK = {
     "image_area": None,
 }
 
-TEST_CIW_MANAGER_1 = {
-    "name": "CIW Manager 1",
+TEST_CIW_HELPER = {
+    "name": "CIW Helper",
     "screen_cover": COVER_1_ID,
     "mask_cover": COVER_2_ID,
 }
@@ -324,8 +324,8 @@ def options_step_select_action(options_flow_state_override):
 
 
 @pytest.fixture
-def options_step_add_ciw_manager(options_flow_state_override):
-    options_flow_state_override["step_id"] = "add_ciw_manager"
+def options_step_add_ciw_helper(options_flow_state_override):
+    options_flow_state_override["step_id"] = "add_ciw_helper"
 
 
 @pytest.fixture
@@ -339,8 +339,8 @@ def options_step_define_drop(options_flow_state_override):
 
 
 @pytest.fixture
-def options_step_del_ciw_manager(options_flow_state_override):
-    options_flow_state_override["step_id"] = "del_ciw_manager"
+def options_step_del_ciw_helper(options_flow_state_override):
+    options_flow_state_override["step_id"] = "del_ciw_helper"
 
 
 @pytest.fixture
@@ -383,7 +383,7 @@ def config_add_mask(config_data):
 def options_flow_data(options_data):
     options_data.update(
         {
-            "ciw_managers": {},
+            "ciw_helpers": {},
             "presets": {},
         }
     )
@@ -391,8 +391,8 @@ def options_flow_data(options_data):
 
 
 @pytest.fixture
-def options_add_ciw_1(options_flow_data):
-    options_flow_data["ciw_managers"][CIW_1_ID] = TEST_CIW_MANAGER_1
+def options_add_ciw_helper(options_flow_data):
+    options_flow_data["ciw_helpers"][CIW_HELPER_ID] = TEST_CIW_HELPER
 
 
 @pytest.fixture
@@ -769,7 +769,7 @@ async def test_options_init_step(
     flow_id = result["flow_id"]
     flow: OptionsFlowHandler = get_options_flow(hass, flow_id)
 
-    assert flow.data == {CONF_CIW_MANAGERS: {}, CONF_PRESETS: {}}
+    assert flow.data == {CONF_CIW_HELPERS: {}, CONF_PRESETS: {}}
     assert flow.valid_screen_covers == {COVER_1_ID: "Screen"}
     assert flow.valid_mask_covers == {COVER_2_ID: "Mask"}
 
@@ -788,7 +788,7 @@ async def test_menu_add_ciw_with_mask(
     )
     assert result.get("errors") == {}
     assert result.get("type") == FlowResultType.FORM
-    assert result.get("step_id") == "add_ciw_manager"
+    assert result.get("step_id") == "add_ciw_helper"
 
 
 async def test_menu_add_ciw_no_mask(
@@ -811,7 +811,7 @@ async def test_menu_add_ciw_with_existing(
     config_add_controller_1,
     config_add_screen,
     config_add_mask,
-    options_add_ciw_1,
+    options_add_ciw_helper,
     options_add_preset_1,
     options_add_preset_2,
     options_flow_id,
@@ -822,7 +822,7 @@ async def test_menu_add_ciw_with_existing(
     )
     assert result.get("errors") == {}
     assert result.get("type") == FlowResultType.FORM
-    assert result.get("step_id") == "add_ciw_manager"
+    assert result.get("step_id") == "add_ciw_helper"
 
 
 async def test_menu_del_ciw_with_mask(
@@ -860,7 +860,7 @@ async def test_menu_del_ciw_with_existing(
     config_add_controller_1,
     config_add_screen,
     config_add_mask,
-    options_add_ciw_1,
+    options_add_ciw_helper,
     options_add_preset_1,
     options_add_preset_2,
     options_flow_id,
@@ -871,7 +871,7 @@ async def test_menu_del_ciw_with_existing(
     )
     assert result.get("errors") == {}
     assert result.get("type") == FlowResultType.FORM
-    assert result.get("step_id") == "del_ciw_manager"
+    assert result.get("step_id") == "del_ciw_helper"
 
 
 async def test_menu_add_preset_with_mask(
@@ -913,7 +913,7 @@ async def test_menu_add_preset_with_existing(
     config_add_controller_1,
     config_add_screen,
     config_add_mask,
-    options_add_ciw_1,
+    options_add_ciw_helper,
     options_add_preset_1,
     options_add_preset_2,
     options_flow_id,
@@ -962,7 +962,7 @@ async def test_menu_del_preset_with_existing(
     config_add_controller_1,
     config_add_screen,
     config_add_mask,
-    options_add_ciw_1,
+    options_add_ciw_helper,
     options_add_preset_1,
     options_add_preset_2,
     options_flow_id,
@@ -979,7 +979,7 @@ async def test_menu_del_preset_with_existing(
 async def test_add_ciw(
     mocker,
     hass: HomeAssistant,
-    options_step_add_ciw_manager,
+    options_step_add_ciw_helper,
     config_add_controller_1,
     config_add_screen,
     config_add_mask,
@@ -988,13 +988,13 @@ async def test_add_ciw(
     """Test Add CIW action."""
     mocker.patch(
         "custom_components.nice.config_flow.make_id",
-        return_value=CIW_1_ID,
+        return_value=CIW_HELPER_ID,
     )
 
     result = await hass.config_entries.options.async_configure(
         options_flow_id,
         user_input={
-            "name": "CIW Manager 1",
+            "name": "CIW Helper",
             "screen_cover": COVER_1_ID,
             "mask_cover": COVER_2_ID,
         },
@@ -1004,7 +1004,7 @@ async def test_add_ciw(
     assert result.get("title") == ""
     assert result.get("result") == True
     assert result.get("data") == {
-        "ciw_managers": {CIW_1_ID: TEST_CIW_MANAGER_1},
+        "ciw_helpers": {CIW_HELPER_ID: TEST_CIW_HELPER},
         "presets": {},
     }
 
@@ -1040,7 +1040,7 @@ async def test_add_preset(
     flow: OptionsFlowHandler = get_options_flow(hass, flow_id)
 
     assert flow.data == {
-        "ciw_managers": {},
+        "ciw_helpers": {},
         "presets": {PRESET_1_ID: TEST_PARTIAL_PRESET_1_NO_DROPS},
     }
     assert flow.tmp_drops_to_define == [COVER_1_ID, COVER_2_ID]
@@ -1093,7 +1093,7 @@ async def test_define_drop_1_of_2(
     flow: OptionsFlowHandler = get_options_flow(hass, flow_id)
 
     assert flow.data == {
-        "ciw_managers": {},
+        "ciw_helpers": {},
         "presets": {PRESET_1_ID: TEST_PARTIAL_PRESET_1_ONE_DROP},
     }
     assert flow.tmp_drops_to_define == [COVER_2_ID]
@@ -1119,7 +1119,7 @@ async def test_define_drop_2_of_2(
     assert result.get("title") == ""
     assert result.get("result") == True
     assert result.get("data") == {
-        "ciw_managers": {},
+        "ciw_helpers": {},
         "presets": {PRESET_1_ID: TEST_PRESET_1},
     }
 
@@ -1151,17 +1151,17 @@ async def count_entities(hass, entry_id, unique_id_prefix):
 
 async def test_del_ciw(
     hass: HomeAssistant,
-    options_step_del_ciw_manager,
+    options_step_del_ciw_helper,
     config_add_controller_1,
     config_add_screen,
     config_add_mask,
-    options_add_ciw_1,
+    options_add_ciw_helper,
     config_entry,
     options_flow_id,
 ) -> None:
     """Test Del CIW action."""
 
-    id = CIW_1_ID
+    id = CIW_HELPER_ID
 
     num_entities = await count_entities(hass, config_entry.entry_id, id)
     assert num_entities > 0
@@ -1178,7 +1178,7 @@ async def test_del_ciw(
     assert result.get("title") == ""
     assert result.get("result") == True
     assert result.get("data") == {
-        "ciw_managers": {},
+        "ciw_helpers": {},
         "presets": {},
     }
 
@@ -1203,6 +1203,6 @@ async def test_del_preset(
     assert result.get("title") == ""
     assert result.get("result") == True
     assert result.get("data") == {
-        "ciw_managers": {},
+        "ciw_helpers": {},
         "presets": {},
     }

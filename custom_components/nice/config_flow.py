@@ -31,7 +31,7 @@ from .const import (
     CONF_ACTION,
     CONF_ADD_ANOTHER,
     CONF_ADDRESS,
-    CONF_CIW_MANAGERS,
+    CONF_CIW_HELPERS,
     CONF_CONTROLLER,
     CONF_CONTROLLERS,
     CONF_COVER,
@@ -297,8 +297,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self.config_entry = config_entry
         self.data = {
-            CONF_CIW_MANAGERS: deepcopy(
-                self.config_entry.options.get(CONF_CIW_MANAGERS, {})
+            CONF_CIW_HELPERS: deepcopy(
+                self.config_entry.options.get(CONF_CIW_HELPERS, {})
             ),
             CONF_PRESETS: deepcopy(self.config_entry.options.get(CONF_PRESETS, {})),
         }
@@ -330,9 +330,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             if user_input[CONF_ACTION] == ACTION_ADD_CIW:
-                return await self.async_step_add_ciw_manager()
+                return await self.async_step_add_ciw_helper()
             elif user_input[CONF_ACTION] == ACTION_DEL_CIW:
-                return await self.async_step_del_ciw_manager()
+                return await self.async_step_del_ciw_helper()
             elif user_input[CONF_ACTION] == ACTION_ADD_PRESET:
                 return await self.async_step_add_preset()
             elif user_input[CONF_ACTION] == ACTION_DEL_PRESET:
@@ -343,7 +343,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         actions = []
         if len(self.valid_screen_covers) > 0 and len(self.valid_mask_covers) > 0:
             actions.append(ACTION_ADD_CIW)
-        if len(self.data[CONF_CIW_MANAGERS]) > 0:
+        if len(self.data[CONF_CIW_HELPERS]) > 0:
             actions.append(ACTION_DEL_CIW)
         actions.append(ACTION_ADD_PRESET)
         if len(self.data[CONF_PRESETS]) > 0:
@@ -357,7 +357,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
-    async def async_step_add_ciw_manager(
+    async def async_step_add_ciw_helper(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         errors = {}
@@ -365,31 +365,31 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             screen_id = user_input[CONF_SCREEN_COVER]
             mask_id = user_input[CONF_MASK_COVER]
-            self.data[CONF_CIW_MANAGERS][make_id()] = {
+            self.data[CONF_CIW_HELPERS][make_id()] = {
                 CONF_NAME: user_input[CONF_NAME],
                 CONF_SCREEN_COVER: screen_id,
                 CONF_MASK_COVER: mask_id,
             }
             return self.async_create_entry(title="", data=self.data)
 
-        next_num = len(self.data[CONF_CIW_MANAGERS]) + 1
+        next_num = len(self.data[CONF_CIW_HELPERS]) + 1
 
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_NAME, default=f"CIW Manager {next_num}"): str,  # type: ignore
+                vol.Required(CONF_NAME, default=f"CIW Helper {next_num}"): str,  # type: ignore
                 vol.Required(CONF_SCREEN_COVER): vol.In(self.valid_screen_covers),
                 vol.Required(CONF_MASK_COVER): vol.In(self.valid_mask_covers),
             }
         )
 
         return self.async_show_form(
-            step_id="add_ciw_manager",
+            step_id="add_ciw_helper",
             data_schema=data_schema,
             errors=errors,
             description_placeholders={"sequence_number": str(next_num)},
         )
 
-    async def async_step_del_ciw_manager(
+    async def async_step_del_ciw_helper(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         errors = {}
@@ -401,7 +401,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             )
 
             for id in user_input[CONF_SELECT]:
-                del self.data[CONF_CIW_MANAGERS][id]
+                del self.data[CONF_CIW_HELPERS][id]
                 for e in entries:
                     if e.unique_id.startswith(id):
                         entity_registry.async_remove(e.entity_id)
@@ -409,13 +409,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=self.data)
 
         names = {
-            id: config[CONF_NAME] for id, config in self.data[CONF_CIW_MANAGERS].items()
+            id: config[CONF_NAME] for id, config in self.data[CONF_CIW_HELPERS].items()
         }
 
         data_schema = vol.Schema({vol.Required(CONF_SELECT): cv.multi_select(names)})
 
         return self.async_show_form(
-            step_id="del_ciw_manager",
+            step_id="del_ciw_helper",
             data_schema=data_schema,
             errors=errors,
         )
