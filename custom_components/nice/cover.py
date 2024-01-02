@@ -71,13 +71,11 @@ class NiceCover(CoverEntity):
 
     async def async_open_cover(self, **kwargs) -> None:
         """Open the cover."""
-        cmd_name = "move_down" if self._has_reverse_semantics else "move_up"
-        await self.async_send_simple_command(cmd_name)
+        await self.async_send_simple_command("move_up")
 
     async def async_close_cover(self, **kwargs) -> None:
         """Close the cover"""
-        cmd_name = "move_up" if self._has_reverse_semantics else "move_down"
-        await self.async_send_simple_command(cmd_name)
+        await self.async_send_simple_command("move_down")
 
     async def async_stop_cover(self, **kwargs) -> None:
         """Stop the cover"""
@@ -89,8 +87,7 @@ class NiceCover(CoverEntity):
 
     async def async_set_drop_percent(self, drop_percent: float) -> None:
         """Set the cover to a float position (thousandths accuracy)"""
-        pct = 100.0 - drop_percent if self._has_reverse_semantics else drop_percent
-        await self._tt6_cover.send_drop_pct_command(pct / 100.0)
+        await self._tt6_cover.send_drop_pct_command(drop_percent / 100.0)
 
     async def async_send_simple_command(self, command: str) -> None:
         """Send a simple command to the Cover"""
@@ -105,15 +102,22 @@ class NiceCover(CoverEntity):
 
     async def handle_update(self):
         if self._has_reverse_semantics:
-            drop_percent = 100.0 - self._tt6_cover.cover.drop_pct * 100.0
             self._attr_is_opening = self._tt6_cover.cover.is_going_down
             self._attr_is_closing = self._tt6_cover.cover.is_going_up
             self._attr_is_closed = self._tt6_cover.cover.is_fully_up
+            if self._attr_is_opening:
+                self._attr_icon = "mdi:arrow-down-box"
+            elif self._attr_is_closing:
+                self._attr_icon = "mdi:arrow-up-box"
+            elif self._attr_is_closed:
+                self._attr_icon = "mdi:projector-screen-variant-off-outline"
+            else:
+                self._attr_icon = "mdi:projector-screen-variant-outline"
         else:
-            drop_percent = self._tt6_cover.cover.drop_pct * 100.0
             self._attr_is_opening = self._tt6_cover.cover.is_going_up
             self._attr_is_closing = self._tt6_cover.cover.is_going_down
-            self._attr_is_closed = not self._tt6_cover.cover.is_fully_down
-        self._attr_current_cover_position = round(drop_percent)
-        self._attr_extra_state_attributes = {"drop_percent": drop_percent}
+            self._attr_is_closed = self._tt6_cover.cover.is_fully_down
+        drop_percent_scaled = self._tt6_cover.cover.drop_pct * 100.0
+        self._attr_current_cover_position = round(drop_percent_scaled)
+        self._attr_extra_state_attributes = {"drop_percent": drop_percent_scaled}
         self.async_write_ha_state()
