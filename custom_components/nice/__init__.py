@@ -9,8 +9,12 @@ from typing import Any, Awaitable, Callable
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME, EVENT_HOMEASSISTANT_STOP
-from homeassistant.core import CALLBACK_TYPE, HomeAssistant
+from homeassistant.const import (
+    CONF_NAME,
+    EVENT_HOMEASSISTANT_STARTED,
+    EVENT_HOMEASSISTANT_STOP,
+)
+from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from nicett6.ciw_helper import CIWHelper
 from nicett6.cover import Cover
@@ -68,13 +72,21 @@ class NiceControllerWrapper:
 
     async def start(self, hass: HomeAssistant):
         await self._controller.open()
+
+        async def handle_started(event: Event) -> None:
+            _LOGGER.debug(f"Started Event for Nice Controller {self.name}")
+            await self.start_messages(hass)
+
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, handle_started)
+
+    async def start_messages(self, hass: HomeAssistant):
         self._message_tracker_task = asyncio.create_task(
             self._controller.message_tracker()
         )
 
-        async def handle_stop(event):
+        async def handle_stop(event: Event) -> None:
             _LOGGER.debug(f"Stop Event for Nice Controller {self.name}")
-            await self._close()
+            await self._stop()
 
         self._undo_listener = hass.bus.async_listen_once(
             EVENT_HOMEASSISTANT_STOP, handle_stop
@@ -83,15 +95,15 @@ class NiceControllerWrapper:
     async def add_cover(self, *args) -> TT6Cover:
         return await self._controller.add_cover(*args)
 
-    async def _close(self):
+    async def _stop(self):
         await _await_cancel(self._message_tracker_task)
         await self._controller.close()
 
-    async def close(self) -> None:
-        _LOGGER.debug(f"Closing Nice Controller {self.name}")
+    async def stop(self) -> None:
+        _LOGGER.debug(f"Stopping Nice Controller {self.name}")
         if self._undo_listener is not None:
             self._undo_listener()
-        await self._close()
+        await self._stop()
 
 
 async def make_nice_controller_wrapper(
@@ -184,7 +196,7 @@ class NiceData:
         self.ciw_helpers = {}
         self.nice_covers = {}
         for controller in self.controllers.values():
-            await controller.close()
+            await controller.stop()
         self.controllers = {}
 
 
