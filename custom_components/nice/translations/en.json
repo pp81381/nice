@@ -27,7 +27,6 @@
           "address": "Device Address",
           "node": "Node",
           "drop": "Drop",
-          "has_reverse_semantics": "Has reverse semantics?",
           "has_image_area": "Image area?"
         }
       },

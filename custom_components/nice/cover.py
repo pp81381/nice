@@ -6,7 +6,6 @@ from homeassistant.components.cover import (
     CoverEntityFeature,
 )
 from homeassistant.helpers import entity_platform
-from homeassistant.helpers.entity import get_device_class
 from homeassistant.util import slugify
 from nicett6.command_code import simple_command_code_names
 from nicett6.tt6_cover import TT6Cover
@@ -20,8 +19,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     data: NiceData = hass.data[DOMAIN][config_entry.entry_id]
 
     entities = [
-        NiceCover(slugify(id), item.tt6_cover, item.has_reverse_semantics)
-        for id, item in data.nice_covers.items()
+        NiceCover(slugify(id), item.tt6_cover) for id, item in data.nice_covers.items()
     ]
     async_add_entities(entities)
 
@@ -48,18 +46,15 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 class NiceCover(CoverEntity):
     """Representation of a cover"""
 
-    def __init__(
-        self, cover_id: str, tt6_cover: TT6Cover, has_reverse_semantics: bool
-    ) -> None:
+    def __init__(self, cover_id: str, tt6_cover: TT6Cover) -> None:
         """Create HA entity representing a cover"""
         self._attr_unique_id = cover_id
         self._tt6_cover: TT6Cover = tt6_cover
-        self._has_reverse_semantics = has_reverse_semantics
         self._attr_has_entity_name = True
         self._attr_name = None
         self._attr_is_closed = None  # Not initialised by CoverEntity
         self._attr_should_poll = False
-        self._attr_device_class = CoverDeviceClass.SHADE
+        self._attr_device_class = CoverDeviceClass.SCREEN
         self._attr_device_info = {"identifiers": {(DOMAIN, cover_id)}}
         self._updater = EntityUpdater(self.handle_update)
         self._attr_supported_features = (
@@ -71,11 +66,11 @@ class NiceCover(CoverEntity):
 
     async def async_open_cover(self, **kwargs) -> None:
         """Open the cover."""
-        await self.async_send_simple_command("move_up")
+        await self.async_send_simple_command("move_down")
 
     async def async_close_cover(self, **kwargs) -> None:
         """Close the cover"""
-        await self.async_send_simple_command("move_down")
+        await self.async_send_simple_command("move_up")
 
     async def async_stop_cover(self, **kwargs) -> None:
         """Stop the cover"""
@@ -101,22 +96,9 @@ class NiceCover(CoverEntity):
         self._tt6_cover.cover.detach(self._updater)
 
     async def handle_update(self):
-        if self._has_reverse_semantics:
-            self._attr_is_opening = self._tt6_cover.cover.is_going_down
-            self._attr_is_closing = self._tt6_cover.cover.is_going_up
-            self._attr_is_closed = self._tt6_cover.cover.is_fully_up
-            if self._attr_is_opening:
-                self._attr_icon = "mdi:arrow-down-box"
-            elif self._attr_is_closing:
-                self._attr_icon = "mdi:arrow-up-box"
-            elif self._attr_is_closed:
-                self._attr_icon = "mdi:projector-screen-variant-off-outline"
-            else:
-                self._attr_icon = "mdi:projector-screen-variant-outline"
-        else:
-            self._attr_is_opening = self._tt6_cover.cover.is_going_up
-            self._attr_is_closing = self._tt6_cover.cover.is_going_down
-            self._attr_is_closed = self._tt6_cover.cover.is_fully_down
+        self._attr_is_opening = self._tt6_cover.cover.is_going_down
+        self._attr_is_closing = self._tt6_cover.cover.is_going_up
+        self._attr_is_closed = self._tt6_cover.cover.is_fully_up
         drop_percent_scaled = self._tt6_cover.cover.drop_pct * 100.0
         self._attr_current_cover_position = round(drop_percent_scaled)
         self._attr_extra_state_attributes = {"drop_percent": drop_percent_scaled}
