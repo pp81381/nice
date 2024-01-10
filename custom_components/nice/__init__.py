@@ -262,8 +262,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if preset[CONF_NAME] == call.data.get(CONF_NAME):
                 for item in preset[CONF_DROPS]:
                     tt6_cover: TT6Cover = nd.nice_covers[item[CONF_COVER]].tt6_cover
-                    await tt6_cover.send_drop_pct_command(
-                        1.0 - item[CONF_DROP] / tt6_cover.cover.max_drop
+                    await tt6_cover.send_pos_command(
+                        round(
+                            1000.0 * (1.0 - item[CONF_DROP] / tt6_cover.cover.max_drop)
+                        )
                     )
 
     if CONF_PRESETS in entry.options:
