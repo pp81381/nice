@@ -6,7 +6,6 @@ from homeassistant.components.cover import (
     CoverEntityFeature,
 )
 from homeassistant.helpers import entity_platform
-from homeassistant.helpers.entity import get_device_class
 from homeassistant.util import slugify
 from nicett6.command_code import simple_command_code_names
 from nicett6.tt6_cover import TT6Cover
@@ -46,7 +45,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 
 class NiceCover(CoverEntity):
-    """Representation of a cover"""
+    """Representation of a Cover driven by a Nice Tubular Motor"""
 
     def __init__(
         self, cover_id: str, tt6_cover: TT6Cover, has_reverse_semantics: bool
@@ -82,12 +81,14 @@ class NiceCover(CoverEntity):
         await self.async_send_simple_command("stop")
 
     async def async_set_cover_position(self, **kwargs) -> None:
-        """Set the cover to an int position"""
-        await self.async_set_drop_percent(kwargs[ATTR_POSITION])
+        """Move to an int position - 0 is closed, 100 is fully open"""
+        pos: int = (100 - kwargs[ATTR_POSITION]) * 10  # pos of 1000 is fully up
+        await self._tt6_cover.send_pos_command(pos)
 
-    async def async_set_drop_percent(self, drop_percent: float) -> None:
-        """Set the cover to a float position (thousandths accuracy)"""
-        await self._tt6_cover.send_drop_pct_command(drop_percent / 100.0)
+    async def async_set_drop_percent(self, drop_percent_scaled: float) -> None:
+        """Move to a percent position (thousandths accuracy) - 100% is fully down"""
+        pos = round(1000.0 - drop_percent_scaled * 10.0)  # pos of 1000 is fully up
+        await self._tt6_cover.send_pos_command(pos)
 
     async def async_send_simple_command(self, command: str) -> None:
         """Send a simple command to the Cover"""
@@ -117,7 +118,7 @@ class NiceCover(CoverEntity):
             self._attr_is_opening = self._tt6_cover.cover.is_going_up
             self._attr_is_closing = self._tt6_cover.cover.is_going_down
             self._attr_is_closed = self._tt6_cover.cover.is_fully_down
-        drop_percent_scaled = self._tt6_cover.cover.drop_pct * 100.0
-        self._attr_current_cover_position = round(drop_percent_scaled)
+        self._attr_current_cover_position = (1000 - self._tt6_cover.cover.pos) // 10
+        drop_percent_scaled = (1000 - self._tt6_cover.cover.pos) / 10.0
         self._attr_extra_state_attributes = {"drop_percent": drop_percent_scaled}
         self.async_write_ha_state()
