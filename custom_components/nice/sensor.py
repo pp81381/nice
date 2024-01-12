@@ -17,24 +17,24 @@ from . import EntityUpdater, NiceData
 from .const import DOMAIN
 
 
-@dataclass
+@dataclass(frozen=True)
 class NiceCIWSensorEntityDescriptionMixIn:
     value_fn: Callable[[CIWHelper], float | None]
 
 
-@dataclass
+@dataclass(frozen=True)
 class NiceCIWSensorEntityDescription(
     SensorEntityDescription, NiceCIWSensorEntityDescriptionMixIn
 ):
     """Describes a Nice TT6 CIW Sensor"""
 
 
-@dataclass
+@dataclass(frozen=True)
 class NiceCoverSensorEntityDescriptionMixIn:
     value_fn: Callable[[Cover], float | None]
 
 
-@dataclass
+@dataclass(frozen=True)
 class NiceCoverSensorEntityDescription(
     SensorEntityDescription, NiceCoverSensorEntityDescriptionMixIn
 ):
