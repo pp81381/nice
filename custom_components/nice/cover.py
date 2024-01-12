@@ -82,12 +82,12 @@ class NiceCover(CoverEntity):
 
     async def async_set_cover_position(self, **kwargs) -> None:
         """Move to an int position - 0 is closed, 100 is fully open"""
-        pos: int = (100 - kwargs[ATTR_POSITION]) * 10  # pos of 1000 is fully up
+        pos: int = kwargs[ATTR_POSITION] * 10  # pos of 1000 is fully up
         await self._tt6_cover.send_pos_command(pos)
 
     async def async_set_drop_percent(self, drop_percent_scaled: float) -> None:
         """Move to a percent position (thousandths accuracy) - 100% is fully down"""
-        pos = round(1000.0 - drop_percent_scaled * 10.0)  # pos of 1000 is fully up
+        pos = round(drop_percent_scaled * 10.0)  # pos of 1000 is fully up
         await self._tt6_cover.send_pos_command(pos)
 
     async def async_send_simple_command(self, command: str) -> None:
@@ -118,7 +118,7 @@ class NiceCover(CoverEntity):
             self._attr_is_opening = self._tt6_cover.cover.is_going_up
             self._attr_is_closing = self._tt6_cover.cover.is_going_down
             self._attr_is_closed = self._tt6_cover.cover.is_fully_down
-        self._attr_current_cover_position = (1000 - self._tt6_cover.cover.pos) // 10
-        drop_percent_scaled = (1000 - self._tt6_cover.cover.pos) / 10.0
+        self._attr_current_cover_position = (self._tt6_cover.cover.pos) // 10
+        drop_percent_scaled = self._tt6_cover.cover.pos / 10.0
         self._attr_extra_state_attributes = {"drop_percent": drop_percent_scaled}
         self.async_write_ha_state()
