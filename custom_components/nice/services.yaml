@@ -57,3 +57,9 @@ send_simple_command:
             - "del_pos_4"
             - "del_pos_5"
             - "del_pos_6"
+
+refresh_position:
+  target:
+    entity:
+      integration: nice
+      domain: cover

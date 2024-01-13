@@ -176,6 +176,10 @@
           "description": "The name of the Simple Command to send"
         }
       }
+    },
+    "refresh_position": {
+      "name": "Refresh Position",
+      "description": "Refresh the position of the specified Cover"
     }
   }
 }

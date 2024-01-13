@@ -11,7 +11,12 @@ from nicett6.command_code import simple_command_code_names
 from nicett6.tt6_cover import TT6Cover
 
 from . import EntityUpdater, NiceData
-from .const import DOMAIN, SERVICE_SEND_SIMPLE_COMMAND, SERVICE_SET_DROP_PERCENT
+from .const import (
+    DOMAIN,
+    SERVICE_REFRESH_POSITION,
+    SERVICE_SEND_SIMPLE_COMMAND,
+    SERVICE_SET_DROP_PERCENT,
+)
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
@@ -41,6 +46,10 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         SERVICE_SEND_SIMPLE_COMMAND,
         {vol.Required("command"): vol.In(simple_commands)},
         "async_send_simple_command",
+    )
+
+    platform.async_register_entity_service(
+        SERVICE_REFRESH_POSITION, {}, "async_refresh_position"
     )
 
 
@@ -93,6 +102,10 @@ class NiceCover(CoverEntity):
     async def async_send_simple_command(self, command: str) -> None:
         """Send a simple command to the Cover"""
         await self._tt6_cover.send_simple_command(command.upper())
+
+    async def async_refresh_position(self) -> None:
+        """Send a request for the current position"""
+        await self._tt6_cover.send_pos_request()
 
     async def async_added_to_hass(self):
         """Register device notification."""
