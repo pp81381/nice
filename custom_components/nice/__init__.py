@@ -97,9 +97,7 @@ class NiceControllerWrapper:
         return await self._controller.add_cover(*args)
 
     async def reconnect(self):
-        # TODO: Move this into CoverManager
-        assert self._controller._conn is not None
-        await self._controller._conn.connect()
+        await self._controller.reconnect()
 
     async def _stop(self):
         await _await_cancel(self._message_tracker_task)
