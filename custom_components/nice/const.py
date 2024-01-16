@@ -32,9 +32,10 @@ CHOICE_ASPECT_RATIO_4_3 = "aspect_ratio_4_3"
 CHOICE_ASPECT_RATIO_OTHER = "aspect_ratio_other"
 
 SERVICE_APPLY_PRESET = "apply_preset"
-SERVICE_SET_DROP_PERCENT = "set_drop_percent"
-SERVICE_SEND_SIMPLE_COMMAND = "send_simple_command"
+SERVICE_RECONNECT = "reconnect"
 SERVICE_REFRESH_POSITION = "refresh_position"
+SERVICE_SEND_SIMPLE_COMMAND = "send_simple_command"
+SERVICE_SET_DROP_PERCENT = "set_drop_percent"
 
 ACTION_ADD_CIW = "Add CIW Helper"
 ACTION_DEL_CIW = "Delete CIW Helper(s)"

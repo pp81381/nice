@@ -157,6 +157,10 @@
         }
       }
     },
+    "reconnect": {
+      "name": "Reconnect",
+      "description": "Reconnect to the controller(s)"
+    },
     "set_drop_percent": {
       "name": "Set Cover Drop Percent",
       "description": "Set the Cover to the specified drop in percent",

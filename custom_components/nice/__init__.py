@@ -14,7 +14,7 @@ from homeassistant.const import (
     EVENT_HOMEASSISTANT_STARTED,
     EVENT_HOMEASSISTANT_STOP,
 )
-from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, ServiceCall
 from homeassistant.helpers import device_registry as dr
 from nicett6.ciw_helper import CIWHelper
 from nicett6.cover import Cover
@@ -50,6 +50,7 @@ from .const import (
     CONF_SERIAL_PORT,
     DOMAIN,
     SERVICE_APPLY_PRESET,
+    SERVICE_RECONNECT,
 )
 
 PLATFORMS = ["cover", "sensor"]
@@ -94,6 +95,11 @@ class NiceControllerWrapper:
 
     async def add_cover(self, *args) -> TT6Cover:
         return await self._controller.add_cover(*args)
+
+    async def reconnect(self):
+        # TODO: Move this into CoverManager
+        assert self._controller._conn is not None
+        await self._controller._conn.connect()
 
     async def _stop(self):
         await _await_cancel(self._message_tracker_task)
@@ -260,7 +266,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    async def apply_preset(call) -> None:
+    async def apply_preset(call: ServiceCall) -> None:
         """Service call to apply a preset."""
         for preset in entry.options[CONF_PRESETS].values():
             if preset[CONF_NAME] == call.data.get(CONF_NAME):
@@ -283,6 +289,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             apply_preset,
             schema=SERVICE_APPLY_PRESET_SCHEMA,
         )
+
+    async def reconnect(call: ServiceCall) -> None:
+        for c in nd.controllers.values():
+            await c.reconnect()
+
+    hass.services.async_register(DOMAIN, SERVICE_RECONNECT, reconnect)
 
     return True
 

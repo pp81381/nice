@@ -6,6 +6,8 @@ apply_preset:
       selector:
         text:
 
+reconnect:
+
 set_drop_percent:
   target:
     entity:

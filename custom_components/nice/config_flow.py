@@ -15,7 +15,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.entity_registry import async_entries_for_config_entry
 from homeassistant.helpers.entity_registry import async_get as get_entity_registry
 from homeassistant.util import slugify
-from nicett6.connection import open_connection
+from nicett6.tt6_connection import open_connection
 from nicett6.utils import MAX_ASPECT_RATIO, MIN_ASPECT_RATIO
 from serial import SerialException
 
