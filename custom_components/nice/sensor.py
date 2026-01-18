@@ -16,29 +16,24 @@ from nicett6.cover import Cover
 from . import EntityUpdater, NiceData
 from .const import DOMAIN
 
-
-@dataclass(frozen=True)
-class NiceCIWSensorEntityDescriptionMixIn:
-    value_fn: Callable[[CIWHelper], float | None]
+CIW_VALUE_FN = Callable[[CIWHelper], float | None]
+COVER_VALUE_FN = Callable[[Cover], float | None]
 
 
 @dataclass(frozen=True)
-class NiceCIWSensorEntityDescription(
-    SensorEntityDescription, NiceCIWSensorEntityDescriptionMixIn
-):
+class NiceCIWSensorEntityDescription:
     """Describes a Nice TT6 CIW Sensor"""
 
-
-@dataclass(frozen=True)
-class NiceCoverSensorEntityDescriptionMixIn:
-    value_fn: Callable[[Cover], float | None]
+    entity_description: SensorEntityDescription
+    value_fn: CIW_VALUE_FN
 
 
 @dataclass(frozen=True)
-class NiceCoverSensorEntityDescription(
-    SensorEntityDescription, NiceCoverSensorEntityDescriptionMixIn
-):
+class NiceCoverSensorEntityDescription:
     """Describes a Nice TT6 Cover"""
+
+    entity_description: SensorEntityDescription
+    value_fn: COVER_VALUE_FN
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
@@ -53,63 +48,84 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     ciw_sensor_descriptions: List[NiceCIWSensorEntityDescription] = [
         NiceCIWSensorEntityDescription(
-            key="image_height",
-            name="Image Height",
-            icon="mdi:arrow-expand-vertical",
-            native_unit_of_measurement=native_length_unit,
-            device_class=SensorDeviceClass.DISTANCE,
+            SensorEntityDescription(
+                key="image_height",
+                name="Image Height",
+                icon="mdi:arrow-expand-vertical",
+                native_unit_of_measurement=native_length_unit,
+                device_class=SensorDeviceClass.DISTANCE,
+            ),
             value_fn=lambda ciw_helper: ciw_helper.image_height,
         ),
         NiceCIWSensorEntityDescription(
-            key="image_width",
-            name="Image Width",
-            icon="mdi:arrow-expand-horizontal",
-            native_unit_of_measurement=native_length_unit,
-            device_class=SensorDeviceClass.DISTANCE,
+            SensorEntityDescription(
+                key="image_width",
+                name="Image Width",
+                icon="mdi:arrow-expand-horizontal",
+                native_unit_of_measurement=native_length_unit,
+                device_class=SensorDeviceClass.DISTANCE,
+            ),
             value_fn=lambda ciw_helper: ciw_helper.image_width,
         ),
         NiceCIWSensorEntityDescription(
-            key="image_diagonal",
-            name="Image Diagonal",
-            icon="mdi:arrow-top-left-bottom-right",
-            # Diagonal unit can be set to inches from the Entity Configuration
-            native_unit_of_measurement=native_length_unit,
-            device_class=SensorDeviceClass.DISTANCE,
+            SensorEntityDescription(
+                key="image_diagonal",
+                name="Image Diagonal",
+                icon="mdi:arrow-top-left-bottom-right",
+                # Diagonal unit can be set to inches from the Entity Configuration
+                native_unit_of_measurement=native_length_unit,
+                device_class=SensorDeviceClass.DISTANCE,
+            ),
             value_fn=lambda ciw_helper: ciw_helper.image_diagonal,
         ),
         NiceCIWSensorEntityDescription(
-            key="image_aspect_ratio",
-            name="Image Aspect Ratio",
-            icon="mdi:aspect-ratio",
-            native_unit_of_measurement=":1",
+            SensorEntityDescription(
+                key="image_aspect_ratio",
+                name="Image Aspect Ratio",
+                icon="mdi:aspect-ratio",
+                native_unit_of_measurement=":1",
+            ),
             value_fn=lambda ciw_helper: ciw_helper.aspect_ratio,
         ),
     ]
 
     cover_descriptions: List[NiceCoverSensorEntityDescription] = [
         NiceCoverSensorEntityDescription(
-            key="drop",
-            name="Drop",
-            icon="mdi:arrow-collapse-down",
-            native_unit_of_measurement=native_length_unit,
-            device_class=SensorDeviceClass.DISTANCE,
+            SensorEntityDescription(
+                key="drop",
+                name="Drop",
+                icon="mdi:arrow-collapse-down",
+                native_unit_of_measurement=native_length_unit,
+                device_class=SensorDeviceClass.DISTANCE,
+            ),
             value_fn=lambda cover: cover.drop,
         )
     ]
 
     async_add_entities(
         [
-            NiceCIWSensor(id, entity_description, item.screen_cover_id, item.ciw_helper)
+            NiceCIWSensor(
+                id,
+                desc.entity_description,
+                desc.value_fn,
+                item.screen_cover_id,
+                item.ciw_helper,
+            )
             for id, item in data.ciw_helpers.items()
-            for entity_description in ciw_sensor_descriptions
+            for desc in ciw_sensor_descriptions
         ]
     )
 
     async_add_entities(
         [
-            NiceCoverSensor(id, entity_description, item.tt6_cover.cover)
+            NiceCoverSensor(
+                id,
+                desc.entity_description,
+                desc.value_fn,
+                item.tt6_cover.cover,
+            )
             for id, item in data.nice_covers.items()
-            for entity_description in cover_descriptions
+            for desc in cover_descriptions
         ]
     )
 
@@ -120,12 +136,14 @@ class NiceCIWSensor(SensorEntity):
     def __init__(
         self,
         ciw_id: str,
-        entity_description: NiceCIWSensorEntityDescription,
+        entity_description: SensorEntityDescription,
+        value_fn: CIW_VALUE_FN,
         screen_cover_id: str,
         ciw_helper: CIWHelper,
     ) -> None:
         """A Sensor for a CIWHelper property."""
-        self.entity_description: NiceCIWSensorEntityDescription = entity_description
+        self.entity_description = entity_description
+        self._value_fn = value_fn
         self._attr_unique_id = f"{ciw_id}_{entity_description.key}"
         self._attr_should_poll = False
         self._attr_device_info = {
@@ -145,7 +163,7 @@ class NiceCIWSensor(SensorEntity):
         self._helper.mask.detach(self._updater)
 
     async def handle_update(self):
-        self._attr_native_value = self.entity_description.value_fn(self._helper)
+        self._attr_native_value = self._value_fn(self._helper)
         self.async_write_ha_state()
 
 
@@ -155,11 +173,13 @@ class NiceCoverSensor(SensorEntity):
     def __init__(
         self,
         cover_id: str,
-        entity_description: NiceCoverSensorEntityDescription,
+        entity_description: SensorEntityDescription,
+        value_fn: COVER_VALUE_FN,
         cover: Cover,
     ) -> None:
         """A Sensor for a Cover property."""
-        self.entity_description: NiceCoverSensorEntityDescription = entity_description
+        self.entity_description = entity_description
+        self._value_fn = value_fn
         self._attr_unique_id = f"{cover_id}_{entity_description.key}"
         self._attr_should_poll = False
         self._attr_device_info = {"identifiers": {(DOMAIN, cover_id)}}
@@ -175,5 +195,5 @@ class NiceCoverSensor(SensorEntity):
         self._cover.detach(self._updater)
 
     async def handle_update(self):
-        self._attr_native_value = self.entity_description.value_fn(self._cover)
+        self._attr_native_value = self._value_fn(self._cover)
         self.async_write_ha_state()

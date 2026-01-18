@@ -1,11 +1,12 @@
 import voluptuous as vol
+from homeassistant.components.cover import ATTR_POSITION
+from homeassistant.components.cover import DOMAIN as COVER_DOMAIN
 from homeassistant.components.cover import (
-    ATTR_POSITION,
     CoverDeviceClass,
     CoverEntity,
     CoverEntityFeature,
 )
-from homeassistant.helpers import entity_platform
+from homeassistant.helpers import service
 from homeassistant.util import slugify
 from nicett6.command_code import simple_command_code_names
 from nicett6.tt6_cover import TT6Cover
@@ -29,27 +30,36 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     ]
     async_add_entities(entities)
 
-    platform = entity_platform.async_get_current_platform()
-
-    platform.async_register_entity_service(
+    service.async_register_platform_entity_service(
+        hass,
+        DOMAIN,
         SERVICE_SET_DROP_PERCENT,
-        {
+        entity_domain=COVER_DOMAIN,
+        schema={
             vol.Required("drop_percent"): vol.All(
                 vol.Coerce(float), vol.Range(min=0.0, max=100.0)
             )
         },
-        "async_set_drop_percent",
+        func="async_set_drop_percent",
     )
 
     simple_commands = [cn.lower() for cn in simple_command_code_names()]
-    platform.async_register_entity_service(
+    service.async_register_platform_entity_service(
+        hass,
+        DOMAIN,
         SERVICE_SEND_SIMPLE_COMMAND,
-        {vol.Required("command"): vol.In(simple_commands)},
-        "async_send_simple_command",
+        entity_domain=COVER_DOMAIN,
+        schema={vol.Required("command"): vol.In(simple_commands)},
+        func="async_send_simple_command",
     )
 
-    platform.async_register_entity_service(
-        SERVICE_REFRESH_POSITION, {}, "async_refresh_position"
+    service.async_register_platform_entity_service(
+        hass,
+        DOMAIN,
+        SERVICE_REFRESH_POSITION,
+        entity_domain=COVER_DOMAIN,
+        schema={},
+        func="async_refresh_position",
     )
 
 

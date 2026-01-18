@@ -1,4 +1,5 @@
 """Config flow for Nice integration."""
+
 from __future__ import annotations
 
 import logging
@@ -11,7 +12,6 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.entity_registry import async_entries_for_config_entry
 from homeassistant.helpers.entity_registry import async_get as get_entity_registry
 from homeassistant.util import slugify
@@ -102,12 +102,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         return await self.async_step_define()
 
     async def async_step_define(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         errors = {}
 
         if user_input is not None:
@@ -128,7 +128,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_controller(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         errors = {}
 
         if user_input is not None:
@@ -163,7 +163,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_cover(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         errors = {}
 
         if user_input is not None:
@@ -214,7 +214,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_image_area(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         cover_config = self.data[CONF_COVERS][self.tmp]
         errors = {}
 
@@ -276,7 +276,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_finish_cover(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         errors = {}
 
         if user_input is not None:
@@ -298,21 +298,18 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handles options flow for the Nice component."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
         self.data = {
-            CONF_CIW_HELPERS: deepcopy(
-                self.config_entry.options.get(CONF_CIW_HELPERS, {})
-            ),
-            CONF_PRESETS: deepcopy(self.config_entry.options.get(CONF_PRESETS, {})),
+            CONF_CIW_HELPERS: deepcopy(config_entry.options.get(CONF_CIW_HELPERS, {})),
+            CONF_PRESETS: deepcopy(config_entry.options.get(CONF_PRESETS, {})),
         }
-        self.valid_screen_covers = {
+        self.valid_screen_covers: dict[str, str] = {
             id: config[CONF_NAME]
-            for id, config in self.config_entry.data[CONF_COVERS].items()
+            for id, config in config_entry.data[CONF_COVERS].items()
             if config[CONF_IMAGE_AREA] is not None
         }
-        self.valid_mask_covers = {
+        self.valid_mask_covers: dict[str, str] = {
             id: config[CONF_NAME]
-            for id, config in self.config_entry.data[CONF_COVERS].items()
+            for id, config in config_entry.data[CONF_COVERS].items()
             if config[CONF_IMAGE_AREA] is None
         }
         self.tmp_preset_id = None
@@ -320,13 +317,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         """Manage the options for the custom component."""
         return await self.async_step_select_action()
 
     async def async_step_select_action(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         """Select the desired action."""
 
         errors = {}
@@ -362,7 +359,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_add_ciw_helper(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         errors = {}
 
         if user_input is not None:
@@ -394,7 +391,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_del_ciw_helper(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         errors = {}
 
         if user_input is not None:
@@ -425,7 +422,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_add_preset(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         errors = {}
 
         if user_input is not None:
@@ -464,7 +461,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_define_drop(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         errors = {}
 
         preset_config = self.data[CONF_PRESETS][self.tmp_preset_id]
@@ -508,7 +505,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_del_preset(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         errors = {}
 
         if user_input is not None:

@@ -1,4 +1,5 @@
 """Test the Nice config flow."""
+
 from __future__ import annotations
 
 import uuid
@@ -9,11 +10,15 @@ import pytest
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_UNIT_SYSTEM_METRIC
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowHandler, FlowResult, FlowResultType
+from homeassistant.data_entry_flow import (
+    FlowHandler,
+    FlowResult,
+    FlowResultType,
+    InvalidData,
+)
 from homeassistant.helpers.entity_registry import async_entries_for_config_entry
 from homeassistant.helpers.entity_registry import async_get as get_entity_registry
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-from voluptuous import MultipleInvalid
 
 from custom_components.nice.config_flow import ConfigFlow as NiceConfigFlow
 from custom_components.nice.config_flow import OptionsFlowHandler, make_id
@@ -804,7 +809,7 @@ async def test_menu_add_ciw_no_mask(
     options_flow_id,
 ) -> None:
     """Verify no Add CIW menu item."""
-    with pytest.raises(MultipleInvalid):
+    with pytest.raises(InvalidData):
         await hass.config_entries.options.async_configure(
             options_flow_id, user_input={CONF_ACTION: ACTION_ADD_CIW}
         )
@@ -839,7 +844,7 @@ async def test_menu_del_ciw_with_mask(
     options_flow_id,
 ) -> None:
     """Verify no Del CIW menu item."""
-    with pytest.raises(MultipleInvalid):
+    with pytest.raises(InvalidData):
         await hass.config_entries.options.async_configure(
             options_flow_id, user_input={CONF_ACTION: ACTION_DEL_CIW}
         )
@@ -853,7 +858,7 @@ async def test_menu_del_ciw_no_mask(
     options_flow_id,
 ) -> None:
     """Verify no Del CIW menu item."""
-    with pytest.raises(MultipleInvalid):
+    with pytest.raises(InvalidData):
         await hass.config_entries.options.async_configure(
             options_flow_id, user_input={CONF_ACTION: ACTION_DEL_CIW}
         )
@@ -941,7 +946,7 @@ async def test_menu_mask_del_preset_with_mask(
     options_flow_id,
 ) -> None:
     """Verify no Del Preset menu item."""
-    with pytest.raises(MultipleInvalid):
+    with pytest.raises(InvalidData):
         await hass.config_entries.options.async_configure(
             options_flow_id, user_input={CONF_ACTION: ACTION_DEL_PRESET}
         )
@@ -955,7 +960,7 @@ async def test_menu_del_preset_no_mask(
     options_flow_id,
 ) -> None:
     """Verify no Del Preset menu item."""
-    with pytest.raises(MultipleInvalid):
+    with pytest.raises(InvalidData):
         await hass.config_entries.options.async_configure(
             options_flow_id, user_input={CONF_ACTION: ACTION_DEL_PRESET}
         )
@@ -1007,7 +1012,6 @@ async def test_add_ciw(
 
     assert result.get("type") == FlowResultType.CREATE_ENTRY
     assert result.get("title") == ""
-    assert result.get("result") == True
     assert result.get("data") == {
         "ciw_helpers": {CIW_HELPER_ID: TEST_CIW_HELPER},
         "presets": {},
@@ -1122,7 +1126,6 @@ async def test_define_drop_2_of_2(
 
     assert result.get("type") == FlowResultType.CREATE_ENTRY
     assert result.get("title") == ""
-    assert result.get("result") == True
     assert result.get("data") == {
         "ciw_helpers": {},
         "presets": {PRESET_1_ID: TEST_PRESET_1},
@@ -1141,7 +1144,7 @@ async def test_define_drop_invalid_drop(
     options_flow_id,
 ) -> None:
     """Test invalid drop."""
-    with pytest.raises(MultipleInvalid):
+    with pytest.raises(InvalidData):
         await hass.config_entries.options.async_configure(
             options_flow_id,
             user_input={"drop": 2.0},
@@ -1181,7 +1184,6 @@ async def test_del_ciw(
 
     assert result.get("type") == FlowResultType.CREATE_ENTRY
     assert result.get("title") == ""
-    assert result.get("result") == True
     assert result.get("data") == {
         "ciw_helpers": {},
         "presets": {},
@@ -1206,7 +1208,6 @@ async def test_del_preset(
 
     assert result.get("type") == FlowResultType.CREATE_ENTRY
     assert result.get("title") == ""
-    assert result.get("result") == True
     assert result.get("data") == {
         "ciw_helpers": {},
         "presets": {},
