@@ -56,6 +56,7 @@ SCREEN_COVER_INPUT = {
     "node": 4,
     "drop": 1.8,
     "has_image_area": True,
+    "has_reverse_motor_pos": False,
     "has_reverse_semantics": False,
 }
 
@@ -67,6 +68,7 @@ MASK_COVER_INPUT = {
     "node": 4,
     "drop": 0.5,
     "has_image_area": False,
+    "has_reverse_motor_pos": False,
     "has_reverse_semantics": False,
 }
 
@@ -84,6 +86,7 @@ TEST_PARTIAL_SCREEN = {
     "node": 4,
     "drop": 1.8,
     "image_area": None,
+    "has_reverse_motor_pos": False,
     "has_reverse_semantics": False,
 }
 
@@ -99,6 +102,7 @@ TEST_SCREEN = {
         "image_aspect_ratio_choice": "aspect_ratio_16_9",
         "image_aspect_ratio_other": None,
     },
+    "has_reverse_motor_pos": False,
     "has_reverse_semantics": False,
 }
 
@@ -109,6 +113,7 @@ TEST_MASK = {
     "node": 4,
     "drop": 0.5,
     "image_area": None,
+    "has_reverse_motor_pos": False,
     "has_reverse_semantics": False,
 }
 

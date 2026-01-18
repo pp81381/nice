@@ -1,4 +1,5 @@
 """The Nice integration."""
+
 from __future__ import annotations
 
 import asyncio
@@ -37,6 +38,7 @@ from .const import (
     CONF_COVERS,
     CONF_DROP,
     CONF_DROPS,
+    CONF_HAS_REVERSE_MOTOR_POS,
     CONF_HAS_REVERSE_SEMANTICS,
     CONF_IMAGE_AREA,
     CONF_IMAGE_ASPECT_RATIO_CHOICE,
@@ -150,6 +152,7 @@ def image_def_from_config(cover_config) -> ImageDef | None:
 @dataclass
 class NiceCoverData:
     tt6_cover: TT6Cover
+    has_reverse_motor_pos: bool
     has_reverse_semantics: bool
     image_def: ImageDef | None
 
@@ -179,9 +182,11 @@ class NiceData:
             TTBusDeviceAddress(cover_config[CONF_ADDRESS], cover_config[CONF_NODE]),
             Cover(cover_config[CONF_NAME], cover_config[CONF_DROP]),
         )
+        has_reverse_motor_pos = cover_config.get(CONF_HAS_REVERSE_MOTOR_POS, False)
         has_reverse_semantics = cover_config.get(CONF_HAS_REVERSE_SEMANTICS, False)
         self.nice_covers[id] = NiceCoverData(
             tt6_cover,
+            has_reverse_motor_pos,
             has_reverse_semantics,
             image_def_from_config(cover_config),
         )

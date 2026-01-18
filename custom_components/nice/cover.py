@@ -25,7 +25,12 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     data: NiceData = hass.data[DOMAIN][config_entry.entry_id]
 
     entities = [
-        NiceCover(slugify(id), item.tt6_cover, item.has_reverse_semantics)
+        NiceCover(
+            slugify(id),
+            item.tt6_cover,
+            item.has_reverse_motor_pos,
+            item.has_reverse_semantics,
+        )
         for id, item in data.nice_covers.items()
     ]
     async_add_entities(entities)
@@ -67,11 +72,16 @@ class NiceCover(CoverEntity):
     """Representation of a Cover driven by a Nice Tubular Motor"""
 
     def __init__(
-        self, cover_id: str, tt6_cover: TT6Cover, has_reverse_semantics: bool
+        self,
+        cover_id: str,
+        tt6_cover: TT6Cover,
+        has_reverse_motor_pos: bool,
+        has_reverse_semantics: bool,
     ) -> None:
         """Create HA entity representing a cover"""
         self._attr_unique_id = cover_id
         self._tt6_cover: TT6Cover = tt6_cover
+        self._has_reverse_motor_pos = has_reverse_motor_pos
         self._has_reverse_semantics = has_reverse_semantics
         self._attr_has_entity_name = True
         self._attr_name = None
@@ -101,12 +111,24 @@ class NiceCover(CoverEntity):
 
     async def async_set_cover_position(self, **kwargs) -> None:
         """Move to an int position - 0 is closed, 100 is fully open"""
-        pos: int = kwargs[ATTR_POSITION] * 10  # pos of 1000 is fully up
+        if self._has_reverse_motor_pos:
+            # Controller interprets 1000 as fully down
+            # ATTR_POSITION of 100 (open) should map to POS of 0 (up)
+            # ATTR_POSITION of 0 (closed) should map to POS of 1000 (down)
+            pos: int = 1000 - kwargs[ATTR_POSITION] * 10
+        else:
+            # Controller interprets 1000 as fully up
+            # ATTR_POSITION of 100 (open) should map to POS of 1000 (up)
+            # ATTR_POSITION of 0 (closed) should map to POS of 0 (down)
+            pos: int = kwargs[ATTR_POSITION] * 10
         await self._tt6_cover.send_pos_command(pos)
 
     async def async_set_drop_percent(self, drop_percent_scaled: float) -> None:
         """Move to a percent position (thousandths accuracy) - 100% is fully down"""
-        pos = round(drop_percent_scaled * 10.0)  # pos of 1000 is fully up
+        if self._has_reverse_motor_pos:
+            pos: int = 1000 - round(drop_percent_scaled * 10.0)
+        else:
+            pos: int = round(drop_percent_scaled * 10.0)
         await self._tt6_cover.send_pos_command(pos)
 
     async def async_send_simple_command(self, command: str) -> None:
@@ -141,7 +163,11 @@ class NiceCover(CoverEntity):
             self._attr_is_opening = self._tt6_cover.cover.is_going_up
             self._attr_is_closing = self._tt6_cover.cover.is_going_down
             self._attr_is_closed = self._tt6_cover.cover.is_fully_down
-        self._attr_current_cover_position = (self._tt6_cover.cover.pos) // 10
-        drop_percent_scaled = self._tt6_cover.cover.pos / 10.0
+        if self._has_reverse_motor_pos:
+            self._attr_current_cover_position = (1000 - self._tt6_cover.cover.pos) // 10
+            drop_percent_scaled: float = (1000.0 - self._tt6_cover.cover.pos) / 10.0
+        else:
+            self._attr_current_cover_position = (self._tt6_cover.cover.pos) // 10
+            drop_percent_scaled: float = self._tt6_cover.cover.pos / 10.0
         self._attr_extra_state_attributes = {"drop_percent": drop_percent_scaled}
         self.async_write_ha_state()

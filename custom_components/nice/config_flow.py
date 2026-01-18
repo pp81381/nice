@@ -39,6 +39,7 @@ from .const import (
     CONF_DROP,
     CONF_DROPS,
     CONF_HAS_IMAGE_AREA,
+    CONF_HAS_REVERSE_MOTOR_POS,
     CONF_HAS_REVERSE_SEMANTICS,
     CONF_IMAGE_AREA,
     CONF_IMAGE_ASPECT_RATIO_CHOICE,
@@ -176,6 +177,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_NODE: user_input[CONF_NODE],
                 CONF_DROP: user_input[CONF_DROP],
                 CONF_IMAGE_AREA: None,
+                CONF_HAS_REVERSE_MOTOR_POS: user_input[CONF_HAS_REVERSE_MOTOR_POS],
                 CONF_HAS_REVERSE_SEMANTICS: user_input[CONF_HAS_REVERSE_SEMANTICS],
             }
             if user_input[CONF_HAS_IMAGE_AREA]:
@@ -200,6 +202,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_DROP): vol.All(
                     vol.Coerce(float), vol.Range(min=0, min_included=False)
                 ),
+                vol.Optional(CONF_HAS_REVERSE_MOTOR_POS, default=False): bool,  # type: ignore
                 vol.Optional(CONF_HAS_REVERSE_SEMANTICS, default=False): bool,  # type: ignore
                 vol.Optional(CONF_HAS_IMAGE_AREA, default=False): bool,  # type: ignore
             }
