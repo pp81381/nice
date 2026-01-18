@@ -123,12 +123,12 @@ class NiceCover(CoverEntity):
             pos: int = kwargs[ATTR_POSITION] * 10
         await self._tt6_cover.send_pos_command(pos)
 
-    async def async_set_drop_percent(self, drop_percent_scaled: float) -> None:
+    async def async_set_drop_percent(self, drop_percent: float) -> None:
         """Move to a percent position (thousandths accuracy) - 100% is fully down"""
         if self._has_reverse_motor_pos:
-            pos: int = 1000 - round(drop_percent_scaled * 10.0)
+            pos: int = 1000 - round(drop_percent * 10.0)
         else:
-            pos: int = round(drop_percent_scaled * 10.0)
+            pos: int = round(drop_percent * 10.0)
         await self._tt6_cover.send_pos_command(pos)
 
     async def async_send_simple_command(self, command: str) -> None:
