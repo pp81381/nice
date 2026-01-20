@@ -1,11 +1,11 @@
 import voluptuous as vol
-from homeassistant.components.cover import ATTR_POSITION
-from homeassistant.components.cover import DOMAIN as COVER_DOMAIN
 from homeassistant.components.cover import (
+    ATTR_POSITION,
     CoverDeviceClass,
     CoverEntity,
     CoverEntityFeature,
 )
+from homeassistant.components.cover.const import DOMAIN as COVER_DOMAIN
 from homeassistant.helpers import service
 from homeassistant.util import slugify
 from nicett6.command_code import simple_command_code_names

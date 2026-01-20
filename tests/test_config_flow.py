@@ -20,8 +20,11 @@ from homeassistant.helpers.entity_registry import async_entries_for_config_entry
 from homeassistant.helpers.entity_registry import async_get as get_entity_registry
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.nice.config_flow import ConfigFlow as NiceConfigFlow
-from custom_components.nice.config_flow import OptionsFlowHandler, make_id
+from custom_components.nice.config_flow import (
+    NiceConfigFlow,
+    OptionsFlowHandler,
+    make_id,
+)
 from custom_components.nice.const import (
     ACTION_ADD_CIW,
     ACTION_ADD_PRESET,
