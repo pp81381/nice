@@ -1,88 +1,76 @@
 """The Nice integration."""
 
-from __future__ import annotations
-
 import asyncio
 import logging
 from contextlib import suppress
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any, Awaitable, Callable
 
-import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import (
     CONF_NAME,
     EVENT_HOMEASSISTANT_STARTED,
     EVENT_HOMEASSISTANT_STOP,
 )
-from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, ServiceCall
+from homeassistant.core import (
+    CALLBACK_TYPE,
+    CoreState,
+    Event,
+    HomeAssistant,
+    ServiceCall,
+)
 from homeassistant.helpers import device_registry as dr
-from nicett6.ciw_helper import CIWHelper
 from nicett6.cover import Cover
 from nicett6.cover_manager import CoverManager
-from nicett6.image_def import ImageDef
 from nicett6.tt6_cover import TT6Cover
 from nicett6.ttbus_device import TTBusDeviceAddress
 from nicett6.utils import AsyncObservable, AsyncObserver
 
 from .const import (
-    CHOICE_ASPECT_RATIO_2_35_1,
-    CHOICE_ASPECT_RATIO_4_3,
-    CHOICE_ASPECT_RATIO_16_9,
-    CHOICE_ASPECT_RATIO_OTHER,
     CONF_ADDRESS,
-    CONF_CIW_HELPERS,
-    CONF_CONTROLLER,
-    CONF_CONTROLLERS,
-    CONF_COVER,
-    CONF_COVERS,
     CONF_DROP,
-    CONF_DROPS,
     CONF_HAS_REVERSE_MOTOR_POS,
     CONF_HAS_REVERSE_SEMANTICS,
-    CONF_IMAGE_AREA,
-    CONF_IMAGE_ASPECT_RATIO_CHOICE,
-    CONF_IMAGE_ASPECT_RATIO_OTHER,
-    CONF_IMAGE_BORDER_BELOW,
-    CONF_IMAGE_HEIGHT,
-    CONF_MASK_COVER,
     CONF_NODE,
-    CONF_PRESETS,
-    CONF_SCREEN_COVER,
     CONF_SERIAL_PORT,
     DOMAIN,
-    SERVICE_APPLY_PRESET,
     SERVICE_RECONNECT,
+    SUBENTRY_TYPE_COVER,
 )
 
 PLATFORMS = ["cover", "sensor"]
 
 _LOGGER = logging.getLogger(__name__)
 
-
-async def _await_cancel(task):
-    task.cancel()
-    with suppress(asyncio.CancelledError):
-        await task
+type NiceConfigEntry = ConfigEntry[NiceRuntimeData]
 
 
-class NiceControllerWrapper:
+class NiceControllerRunTimeData:
     def __init__(self, name: str, serial_port: str) -> None:
         self.name = name
         self._controller = CoverManager(serial_port)
         self._message_tracker_task: asyncio.Task | None = None
         self._undo_listener: CALLBACK_TYPE | None = None
 
-    async def start(self, hass: HomeAssistant):
+    async def start(self, hass: HomeAssistant) -> None:
+        _LOGGER.debug(f"Opening Nice Controller {self.name}")
         await self._controller.open()
+        if hass.state is CoreState.running:
+            await self.start_messages(hass)
+        else:
+            self.queue_start_messages(hass)
+
+    def queue_start_messages(self, hass: HomeAssistant) -> None:
+        _LOGGER.debug(f"Queuing Message Tracker for Nice Controller {self.name}")
 
         async def handle_started(event: Event) -> None:
-            _LOGGER.debug(f"Started Event for Nice Controller {self.name}")
             await self.start_messages(hass)
 
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, handle_started)
 
-    async def start_messages(self, hass: HomeAssistant):
+    async def start_messages(self, hass: HomeAssistant) -> None:
+        _LOGGER.debug(f"Starting Message Tracker for Nice Controller {self.name}")
         self._message_tracker_task = asyncio.create_task(
             self._controller.message_tracker()
         )
@@ -91,6 +79,7 @@ class NiceControllerWrapper:
             _LOGGER.debug(f"Stop Event for Nice Controller {self.name}")
             await self._stop()
 
+        _LOGGER.debug(f"Starting Listener for Nice Controller {self.name}")
         self._undo_listener = hass.bus.async_listen_once(
             EVENT_HOMEASSISTANT_STOP, handle_stop
         )
@@ -98,148 +87,97 @@ class NiceControllerWrapper:
     async def add_cover(self, *args) -> TT6Cover:
         return await self._controller.add_cover(*args)
 
-    async def reconnect(self):
+    async def reconnect(self) -> None:
         await self._controller.reconnect()
 
-    async def _stop(self):
-        await _await_cancel(self._message_tracker_task)
+    async def _stop(self) -> None:
+        if self._message_tracker_task is not None:
+            _LOGGER.debug(f"Stopping Message Tracker for Nice Controller {self.name}")
+            self._message_tracker_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await self._message_tracker_task
+            self._message_tracker_task = None
+            _LOGGER.debug(f"Stopped Message Tracker for Nice Controller {self.name}")
+        else:
+            _LOGGER.debug(f"Message Tracker not set for Nice Controller {self.name}")
+        _LOGGER.debug(f"Closing Nice Controller {self.name}")
         await self._controller.close()
+        _LOGGER.debug(f"Closed Nice Controller {self.name}")
 
     async def stop(self) -> None:
-        _LOGGER.debug(f"Stopping Nice Controller {self.name}")
         if self._undo_listener is not None:
+            _LOGGER.debug(f"Stopping Listener for Nice Controller {self.name}")
             self._undo_listener()
+            self._undo_listener = None
+            _LOGGER.debug(f"Stopped Listener for Nice Controller {self.name}")
+        else:
+            _LOGGER.debug(f"Listener not set for Nice Controller {self.name}")
         await self._stop()
 
 
-async def make_nice_controller_wrapper(
-    hass: HomeAssistant, name: str, serial_port: str
-) -> NiceControllerWrapper:
-    """Factory for NiceControllerWrapper objects"""
-    wrapper = NiceControllerWrapper(name, serial_port)
-    await wrapper.start(hass)
-    return wrapper
-
-
-def image_aspect_ratio_from_config_params(choice: str, other: float) -> float:
-    if choice == CHOICE_ASPECT_RATIO_16_9:
-        return 16 / 9
-    elif choice == CHOICE_ASPECT_RATIO_2_35_1:
-        return 2.35
-    elif choice == CHOICE_ASPECT_RATIO_4_3:
-        return 4 / 3
-    elif choice == CHOICE_ASPECT_RATIO_OTHER:
-        return other
-    else:
-        raise ValueError("Invalid aspect ratio choice")
-
-
-def image_def_from_config(cover_config) -> ImageDef | None:
-    image_config = cover_config[CONF_IMAGE_AREA]
-    if image_config is not None:
-        return ImageDef(
-            image_config[CONF_IMAGE_BORDER_BELOW],
-            image_config[CONF_IMAGE_HEIGHT],
-            image_aspect_ratio_from_config_params(
-                image_config[CONF_IMAGE_ASPECT_RATIO_CHOICE],
-                image_config[CONF_IMAGE_ASPECT_RATIO_OTHER],
-            ),
-        )
-    else:
-        return None
-
-
 @dataclass
-class NiceCoverData:
+class NiceCoverRuntimeData:
+    name: str
     tt6_cover: TT6Cover
     has_reverse_motor_pos: bool
     has_reverse_semantics: bool
-    image_def: ImageDef | None
+
+
+async def make_cover_runtime_data(
+    controller: NiceControllerRunTimeData,
+    data: MappingProxyType[str, Any],
+) -> NiceCoverRuntimeData:
+    """Factory for cover run time data"""
+    name = data[CONF_NAME]
+    has_reverse_motor_pos = data.get(CONF_HAS_REVERSE_MOTOR_POS, False)
+    has_reverse_semantics = data.get(CONF_HAS_REVERSE_SEMANTICS, False)
+    cover = Cover(name, data[CONF_DROP], has_reverse_motor_pos)
+    tt6_cover = await controller.add_cover(
+        TTBusDeviceAddress(data[CONF_ADDRESS], data[CONF_NODE]), cover
+    )
+    return NiceCoverRuntimeData(
+        name, tt6_cover, has_reverse_motor_pos, has_reverse_semantics
+    )
 
 
 @dataclass
-class NiceCIWData:
-    name: str
-    screen_cover_id: str
-    ciw_helper: CIWHelper
+class NiceRuntimeData:
+    controller: NiceControllerRunTimeData
+    covers: dict[str, NiceCoverRuntimeData]
 
 
-class NiceData:
-    def __init__(self):
-        self.controllers: dict[str, NiceControllerWrapper] = {}
-        self.nice_covers: dict[str, NiceCoverData] = {}
-        self.ciw_helpers: dict[str, NiceCIWData] = {}
-
-    async def add_controller(self, hass, id, config):
-        controller = await make_nice_controller_wrapper(
-            hass, config[CONF_NAME], config[CONF_SERIAL_PORT]
-        )
-        self.controllers[id] = controller
-
-    async def add_cover(self, id, cover_config):
-        controller = self.controllers[cover_config[CONF_CONTROLLER]]
-        tt6_cover = await controller.add_cover(
-            TTBusDeviceAddress(cover_config[CONF_ADDRESS], cover_config[CONF_NODE]),
-            Cover(cover_config[CONF_NAME], cover_config[CONF_DROP]),
-        )
-        has_reverse_motor_pos = cover_config.get(CONF_HAS_REVERSE_MOTOR_POS, False)
-        has_reverse_semantics = cover_config.get(CONF_HAS_REVERSE_SEMANTICS, False)
-        self.nice_covers[id] = NiceCoverData(
-            tt6_cover,
-            has_reverse_motor_pos,
-            has_reverse_semantics,
-            image_def_from_config(cover_config),
-        )
-
-    def add_ciw_helper(self, id, ciw_config):
-        screen: NiceCoverData = self.nice_covers[ciw_config[CONF_SCREEN_COVER]]
-        assert screen.image_def is not None
-        mask: NiceCoverData = self.nice_covers[ciw_config[CONF_MASK_COVER]]
-        self.ciw_helpers[id] = NiceCIWData(
-            ciw_config[CONF_NAME],
-            ciw_config[CONF_SCREEN_COVER],
-            CIWHelper(screen.tt6_cover.cover, mask.tt6_cover.cover, screen.image_def),
-        )
-
-    async def close(self):
-        self.ciw_helpers = {}
-        self.nice_covers = {}
-        for controller in self.controllers.values():
-            await controller.stop()
-        self.controllers = {}
-
-
-async def make_nice_data(hass: HomeAssistant, entry: ConfigEntry) -> NiceData:
-    """Factory for NiceData object"""
-    data = NiceData()
+async def make_runtime_data(hass: HomeAssistant, entry: ConfigEntry) -> NiceRuntimeData:
+    """Factory for run time data.   Also registers devices."""
+    controller_rtd = NiceControllerRunTimeData(
+        entry.data[CONF_NAME], entry.data[CONF_SERIAL_PORT]
+    )
+    await controller_rtd.start(hass)
+    controller_id = entry.entry_id
     device_registry = dr.async_get(hass)
+    device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, controller_id)},
+        manufacturer="Nice",
+        name=controller_rtd.name,
+        model="Nice TT6 Control Unit",
+    )
 
-    for controller_id, controller_config in entry.data[CONF_CONTROLLERS].items():
-        await data.add_controller(hass, controller_id, controller_config)
+    covers_rtd: dict[str, NiceCoverRuntimeData] = {}
+    for se in entry.subentries.values():
+        cover_rtd = await make_cover_runtime_data(controller_rtd, se.data)
+        cover_id = se.subentry_id
         device_registry.async_get_or_create(
             config_entry_id=entry.entry_id,
-            identifiers={(DOMAIN, controller_id)},
-            manufacturer="Nice",
-            name=controller_config[CONF_NAME],
-            model="Nice TT6 Control Unit",
-        )
-
-    for cover_id, cover_config in entry.data[CONF_COVERS].items():
-        await data.add_cover(cover_id, cover_config)
-        device_registry.async_get_or_create(
-            config_entry_id=entry.entry_id,
+            config_subentry_id=se.subentry_id,
             identifiers={(DOMAIN, cover_id)},
-            name=cover_config[CONF_NAME],
+            name=cover_rtd.name,
             manufacturer="Nice",
             model="Nice Tubular Motor",
-            via_device=(DOMAIN, cover_config[CONF_CONTROLLER]),
+            via_device=(DOMAIN, controller_id),
         )
+        covers_rtd[cover_id] = cover_rtd
 
-    if CONF_CIW_HELPERS in entry.options:
-        for ciw_id, ciw_config in entry.options[CONF_CIW_HELPERS].items():
-            data.add_ciw_helper(ciw_id, ciw_config)
-
-    return data
+    return NiceRuntimeData(controller_rtd, covers_rtd)
 
 
 class EntityUpdater(AsyncObserver):
@@ -251,66 +189,110 @@ class EntityUpdater(AsyncObserver):
         await self.handler()
 
 
-async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle options update."""
-    await hass.config_entries.async_reload(entry.entry_id)
-
-
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: NiceConfigEntry) -> bool:
     """Set up Nice from a config entry."""
     _LOGGER.debug("nice async_setup_entry")
 
-    nd = await make_nice_data(hass, entry)
-
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = nd
-
-    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+    entry.runtime_data = await make_runtime_data(hass, entry)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    async def apply_preset(call: ServiceCall) -> None:
-        """Service call to apply a preset."""
-        for preset in entry.options[CONF_PRESETS].values():
-            if preset[CONF_NAME] == call.data.get(CONF_NAME):
-                for item in preset[CONF_DROPS]:
-                    tt6_cover: TT6Cover = nd.nice_covers[item[CONF_COVER]].tt6_cover
-                    await tt6_cover.send_pos_command(
-                        round(
-                            1000.0 * (1.0 - item[CONF_DROP] / tt6_cover.cover.max_drop)
-                        )
-                    )
-
-    if CONF_PRESETS in entry.options:
-        names = [config[CONF_NAME] for config in entry.options[CONF_PRESETS].values()]
-        SERVICE_APPLY_PRESET_SCHEMA = vol.Schema(
-            {vol.Required(CONF_NAME): vol.In(names)}
-        )
-        hass.services.async_register(
-            DOMAIN,
-            SERVICE_APPLY_PRESET,
-            apply_preset,
-            schema=SERVICE_APPLY_PRESET_SCHEMA,
-        )
-
     async def reconnect(call: ServiceCall) -> None:
-        for c in nd.controllers.values():
-            await c.reconnect()
+        await entry.runtime_data.controller.reconnect()
 
     hass.services.async_register(DOMAIN, SERVICE_RECONNECT, reconnect)
 
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: NiceConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.debug("nice async_unload_entry")
-    if hass.services.has_service(DOMAIN, SERVICE_APPLY_PRESET):
-        hass.services.async_remove(DOMAIN, SERVICE_APPLY_PRESET)
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        api = hass.data[DOMAIN].pop(entry.entry_id)
-        await api.close()
+        await entry.runtime_data.controller.stop()
 
     return unload_ok
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: NiceConfigEntry) -> bool:
+    device_registry = dr.async_get(hass)
+
+    if entry.version > 1:
+        # This means the user has downgraded from a future version
+        return False
+
+    if entry.version == 1:
+        controllers: dict[str, dict[str, Any]] | None = entry.data.get("controllers")
+        if controllers is None:
+            _LOGGER.warning("Can't migrate configuration - controller data not found")
+            return False
+        # Only going to support migration of entries with one controller for now
+        if len(controllers) != 1:
+            _LOGGER.warning("Can't migrate configuration with multiple controllers")
+            return False
+        old_controller_id, old_controller_data = list(controllers.items())[0]
+        new_data = old_controller_data.copy()
+        new_options = {}
+        new_title = f"NiceTT6: {new_data[CONF_NAME]}"
+
+        covers: dict[str, dict[str, Any]] | None = entry.data.get("covers")
+        if covers is not None:
+            covers_for_controller = [
+                (i, c)
+                for i, c in covers.items()
+                if c["controller"] == old_controller_id
+            ]
+            for old_cover_id, cover_data in covers_for_controller:
+                new_cover_data = {
+                    k: v
+                    for k, v in cover_data.items()
+                    if k
+                    in {
+                        CONF_NAME,
+                        CONF_ADDRESS,
+                        CONF_NODE,
+                        CONF_DROP,
+                        CONF_HAS_REVERSE_SEMANTICS,
+                    }
+                }
+                subentry = ConfigSubentry(
+                    subentry_type=SUBENTRY_TYPE_COVER,
+                    title=f"Cover: {new_cover_data[CONF_NAME]}",
+                    unique_id=f"{new_cover_data[CONF_ADDRESS]:02X}/{new_cover_data[CONF_NODE]:02X}",
+                    data=MappingProxyType(new_cover_data),
+                )
+                hass.config_entries.async_add_subentry(entry, subentry)
+
+                if device := device_registry.async_get_device({(DOMAIN, old_cover_id)}):
+                    device_registry.async_update_device(
+                        device.id,
+                        remove_config_entry_id=entry.entry_id,
+                        add_config_subentry_id=subentry.subentry_id,
+                        add_config_entry_id=entry.entry_id,
+                        new_identifiers={(DOMAIN, subentry.subentry_id)},
+                    )
+
+        hass.config_entries.async_update_entry(
+            entry,
+            data=new_data,
+            options=new_options,
+            title=new_title,
+            minor_version=1,
+            version=2,
+        )
+
+        if device := device_registry.async_get_device({(DOMAIN, old_controller_id)}):
+            device_registry.async_update_device(
+                device.id,
+                new_identifiers={(DOMAIN, entry.entry_id)},
+            )
+
+    _LOGGER.info(
+        "Migration to configuration version %s.%s successful",
+        entry.version,
+        entry.minor_version,
+    )
+
+    return True

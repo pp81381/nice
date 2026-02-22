@@ -6,12 +6,13 @@ from homeassistant.components.cover import (
     CoverEntityFeature,
 )
 from homeassistant.components.cover.const import DOMAIN as COVER_DOMAIN
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import service
-from homeassistant.util import slugify
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from nicett6.command_code import simple_command_code_names
 from nicett6.tt6_cover import TT6Cover
 
-from . import EntityUpdater, NiceData
+from . import EntityUpdater, NiceConfigEntry, NiceRuntimeData
 from .const import (
     DOMAIN,
     SERVICE_REFRESH_POSITION,
@@ -20,20 +21,28 @@ from .const import (
 )
 
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: NiceConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+) -> None:
     """Set up the cover(s)"""
-    data: NiceData = hass.data[DOMAIN][config_entry.entry_id]
+    nd: NiceRuntimeData = config_entry.runtime_data
 
-    entities = [
-        NiceCover(
-            slugify(id),
-            item.tt6_cover,
-            item.has_reverse_motor_pos,
-            item.has_reverse_semantics,
+    for se in config_entry.subentries.values():
+        cover_id = se.subentry_id
+        ncd = nd.covers[cover_id]
+        entities = [
+            NiceCover(
+                cover_id,
+                ncd.tt6_cover,
+                ncd.has_reverse_motor_pos,
+                ncd.has_reverse_semantics,
+            )
+        ]
+        async_add_entities(
+            entities, update_before_add=False, config_subentry_id=se.subentry_id
         )
-        for id, item in data.nice_covers.items()
-    ]
-    async_add_entities(entities)
 
     service.async_register_platform_entity_service(
         hass,

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Callable, List
 
@@ -9,23 +7,15 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
 )
 from homeassistant.const import UnitOfLength
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util.unit_system import METRIC_SYSTEM
-from nicett6.ciw_helper import CIWHelper
 from nicett6.cover import Cover
 
-from . import EntityUpdater, NiceData
+from . import EntityUpdater, NiceConfigEntry, NiceRuntimeData
 from .const import DOMAIN
 
-CIW_VALUE_FN = Callable[[CIWHelper], float | None]
 COVER_VALUE_FN = Callable[[Cover], float | None]
-
-
-@dataclass(frozen=True)
-class NiceCIWSensorEntityDescription:
-    """Describes a Nice TT6 CIW Sensor"""
-
-    entity_description: SensorEntityDescription
-    value_fn: CIW_VALUE_FN
 
 
 @dataclass(frozen=True)
@@ -36,58 +26,17 @@ class NiceCoverSensorEntityDescription:
     value_fn: COVER_VALUE_FN
 
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: NiceConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+) -> None:
     """Set up the entities."""
-    data: NiceData = hass.data[DOMAIN][config_entry.entry_id]
-
     native_length_unit = (
         UnitOfLength.METERS
         if hass.config.units is METRIC_SYSTEM
         else UnitOfLength.INCHES
     )
-
-    ciw_sensor_descriptions: List[NiceCIWSensorEntityDescription] = [
-        NiceCIWSensorEntityDescription(
-            SensorEntityDescription(
-                key="image_height",
-                name="Image Height",
-                icon="mdi:arrow-expand-vertical",
-                native_unit_of_measurement=native_length_unit,
-                device_class=SensorDeviceClass.DISTANCE,
-            ),
-            value_fn=lambda ciw_helper: ciw_helper.image_height,
-        ),
-        NiceCIWSensorEntityDescription(
-            SensorEntityDescription(
-                key="image_width",
-                name="Image Width",
-                icon="mdi:arrow-expand-horizontal",
-                native_unit_of_measurement=native_length_unit,
-                device_class=SensorDeviceClass.DISTANCE,
-            ),
-            value_fn=lambda ciw_helper: ciw_helper.image_width,
-        ),
-        NiceCIWSensorEntityDescription(
-            SensorEntityDescription(
-                key="image_diagonal",
-                name="Image Diagonal",
-                icon="mdi:arrow-top-left-bottom-right",
-                # Diagonal unit can be set to inches from the Entity Configuration
-                native_unit_of_measurement=native_length_unit,
-                device_class=SensorDeviceClass.DISTANCE,
-            ),
-            value_fn=lambda ciw_helper: ciw_helper.image_diagonal,
-        ),
-        NiceCIWSensorEntityDescription(
-            SensorEntityDescription(
-                key="image_aspect_ratio",
-                name="Image Aspect Ratio",
-                icon="mdi:aspect-ratio",
-                native_unit_of_measurement=":1",
-            ),
-            value_fn=lambda ciw_helper: ciw_helper.aspect_ratio,
-        ),
-    ]
 
     cover_descriptions: List[NiceCoverSensorEntityDescription] = [
         NiceCoverSensorEntityDescription(
@@ -102,69 +51,24 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         )
     ]
 
-    async_add_entities(
-        [
-            NiceCIWSensor(
-                id,
-                desc.entity_description,
-                desc.value_fn,
-                item.screen_cover_id,
-                item.ciw_helper,
-            )
-            for id, item in data.ciw_helpers.items()
-            for desc in ciw_sensor_descriptions
-        ]
-    )
+    runtime_data: NiceRuntimeData = config_entry.runtime_data
 
-    async_add_entities(
-        [
-            NiceCoverSensor(
-                id,
-                desc.entity_description,
-                desc.value_fn,
-                item.tt6_cover.cover,
-            )
-            for id, item in data.nice_covers.items()
-            for desc in cover_descriptions
-        ]
-    )
-
-
-class NiceCIWSensor(SensorEntity):
-    """Nice TT6 CIW Sensor."""
-
-    def __init__(
-        self,
-        ciw_id: str,
-        entity_description: SensorEntityDescription,
-        value_fn: CIW_VALUE_FN,
-        screen_cover_id: str,
-        ciw_helper: CIWHelper,
-    ) -> None:
-        """A Sensor for a CIWHelper property."""
-        self.entity_description = entity_description
-        self._value_fn = value_fn
-        self._attr_unique_id = f"{ciw_id}_{entity_description.key}"
-        self._attr_should_poll = False
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, screen_cover_id)}
-        }  # Image area is part of screen
-        self._attr_has_entity_name = True
-        self._helper: CIWHelper = ciw_helper
-        self._updater = EntityUpdater(self.handle_update)
-
-    async def async_added_to_hass(self):
-        """Register device notification."""
-        self._helper.screen.attach(self._updater)
-        self._helper.mask.attach(self._updater)
-
-    async def async_will_remove_from_hass(self):
-        self._helper.screen.detach(self._updater)
-        self._helper.mask.detach(self._updater)
-
-    async def handle_update(self):
-        self._attr_native_value = self._value_fn(self._helper)
-        self.async_write_ha_state()
+    for se in config_entry.subentries.values():
+        cover_id = se.subentry_id
+        cover_runtime_data = runtime_data.covers[cover_id]
+        async_add_entities(
+            [
+                NiceCoverSensor(
+                    cover_id,
+                    desc.entity_description,
+                    desc.value_fn,
+                    cover_runtime_data.tt6_cover.cover,
+                )
+                for desc in cover_descriptions
+            ],
+            update_before_add=False,
+            config_subentry_id=se.subentry_id,
+        )
 
 
 class NiceCoverSensor(SensorEntity):

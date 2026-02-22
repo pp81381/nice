@@ -2,120 +2,59 @@
   "title": "Nice",
   "config": {
     "step": {
-      "define": {
-        "title": "Define Integration",
-        "description": "Enter the details of this Integration",
-        "data": {
-          "title": "Integration Title"
-        }
-      },
       "controller": {
-        "title": "Create Controller",
-        "description": "Enter the details for Controller #{sequence_number}",
+        "title": "Define Controller",
+        "description": "Enter the details of this controller",
         "data": {
-          "name": "Controller Name",
-          "serial_port": "Serial Port",
-          "add_another": "Add another Controller?"
-        }
-      },
-      "cover": {
-        "title": "Create Cover",
-        "description": "Enter the details for Cover #{sequence_number}",
-        "data": {
-          "name": "Cover Name",
-          "controller": "Controller",
-          "address": "Device Address",
-          "node": "Node",
-          "drop": "Drop",
-          "has_reverse_motor_pos": "Reverse motor position? (e.g. 0 is fully up, 1000 is fully down)",
-          "has_reverse_semantics": "Has reverse semantics?",
-          "has_image_area": "Image area?"
-        }
-      },
-      "image_area": {
-        "title": "Define Image Area",
-        "description": "Enter the details of the Image Area for {cover_name}",
-        "data": {
-          "image_border_below": "Height of Border below Image Area",
-          "image_height": "Image Height",
-          "image_aspect_ratio_choice": "Select Image Aspect Ratio",
-          "image_aspect_ratio_other": "Other Image Aspect Ratio"
-        }
-      },
-      "finish_cover": {
-        "title": "Finish Cover",
-        "description": "Cover Created",
-        "data": {
-          "add_another": "Add another Cover?"
+          "name": "Name",
+          "serial_port": "Serial Port"
         }
       }
     },
     "error": {
       "duplicate_name": "Duplicate name entered",
-      "image_area_too_tall": "Image area taller than drop",
-      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-      "aspect_ratio_other_required": "Other Aspect Ratio required when Choice is 'Other'",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "cannot_connect": "Failed to connect",
+      "unknown": "Unexpected error"
     },
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+      "already_configured": "Device is already configured"
     }
   },
-  "options": {
-    "step": {
-      "select_action": {
-        "title": "Choose Action",
-        "description": "Select the action that you would like to perform",
-        "data": {
-          "action": "Action"
+  "config_subentries": {
+    "cover": {
+      "initiate_flow": {
+        "user": "Add Cover to Hub",
+        "reconfigure": "Reconfigure Cover"
+      },
+      "entry_type": "Cover Sub-entry",
+      "step": {
+        "cover": {
+          "title": "Create Cover",
+          "description": "Enter the details for Cover #{sequence_number}",
+          "data": {
+            "name": "Cover Name",
+            "controller": "Controller",
+            "address": "Device Address",
+            "node": "Node",
+            "drop": "Drop",
+            "has_reverse_motor_pos": "Reverse motor position?",
+            "has_reverse_semantics": "Has reverse semantics?",
+            "has_image_area": "Image area?"
+          },
+          "data_description": {
+            "has_reverse_motor_pos": "Normally, 100% is fully up and 0% is fully down.   When reversed, 0% is fully up and 100% is fully down.",
+            "has_reverse_semantics": "Normally, Opening is going up, Closing is going down and Closed is fully down.  When reversed, Opening is going down, Closing is going up, Closed is fully up."
+          }
         }
       },
-      "add_ciw_helper": {
-        "title": "Add a CIW Helper",
-        "description": "Enter the details of Constant Image Width (CIW) Projector Screen #{sequence_number}",
-        "data": {
-          "name": "Name of CIW Helper",
-          "screen_cover": "Screen",
-          "mask_cover": "Mask"
-        }
+      "error": {
+        "duplicate_name": "Duplicate name entered",
+        "unknown": "Unexpected error"
       },
-      "del_ciw_helper": {
-        "title": "Delete CIW Helper(s)",
-        "description": "Select the CIW Helper(s) to be deleted",
-        "data": {
-          "select": "Select names to be removed"
-        }
-      },
-      "add_preset": {
-        "title": "Add a Preset",
-        "description": "Enter the details for Preset #{sequence_number}; the drops will be captured in the next step(s)",
-        "data": {
-          "name": "Name of Preset",
-          "select": "Select Cover(s) to include"
-        }
-      },
-      "define_drop": {
-        "title": "Define the drop for a Cover",
-        "description": "{preset_name}: Enter drop for {cover_name}; max drop is {max_drop}",
-        "data": {
-          "drop": "Drop"
-        }
-      },
-      "del_preset": {
-        "title": "Delete Preset(s)",
-        "description": "Select the Preset(s) to be deleted",
-        "data": {
-          "select": "Select names to be removed"
-        }
+      "abort": {
+        "already_configured": "Device is already configured",
+        "reconfigure_successful": "Re-configuration was successful"
       }
-    },
-    "error": {
-      "duplicate_name": "Duplicate name entered",
-      "no_covers_selected": "No Covers Selected",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
-    },
-    "abort": {
-      "not_implemented": "Not implemented"
     }
   },
   "selector": {
@@ -124,40 +63,12 @@
         "stop": "Stop",
         "move_down": "Move down",
         "move_up": "Move up",
-        "move_pos_1": "Move to built-in preset 1",
-        "move_pos_2": "Move to built-in preset 2",
-        "move_pos_3": "Move to built-in preset 3",
-        "move_pos_4": "Move to built-in preset 4",
-        "move_pos_5": "Move to built-in preset 5",
-        "move_pos_6": "Move to built-in preset 6",
         "move_up_step": "Move up a step",
-        "move_down_step": "Move down a step",
-        "store_pos_1": "Store current position in built-in preset 1",
-        "store_pos_2": "Store current position in built-in preset 2",
-        "store_pos_3": "Store current position in built-in preset 3",
-        "store_pos_4": "Store current position in built-in preset 4",
-        "store_pos_5": "Store current position in built-in preset 5",
-        "store_pos_6": "Store current position in built-in preset 6",
-        "del_pos_1": "Delete built-in preset 1",
-        "del_pos_2": "Delete built-in preset 2",
-        "del_pos_3": "Delete built-in preset 3",
-        "del_pos_4": "Delete built-in preset 4",
-        "del_pos_5": "Delete built-in preset 5",
-        "del_pos_6": "Delete built-in preset 6"
+        "move_down_step": "Move down a step"
       }
     }
   },
   "services": {
-    "apply_preset": {
-      "name": "Apply Preset",
-      "description": "Move a set of covers to preset positions",
-      "fields": {
-        "name": {
-          "name": "Name",
-          "description": "The name of the preset"
-        }
-      }
-    },
     "reconnect": {
       "name": "Reconnect",
       "description": "Reconnect to the controller(s)"
