@@ -1,4 +1,7 @@
 import voluptuous as vol
+from nicett6.command_code import simple_command_code_names
+from nicett6.tt6_cover import TT6Cover
+
 from homeassistant.components.cover import (
     ATTR_POSITION,
     CoverDeviceClass,
@@ -9,8 +12,6 @@ from homeassistant.components.cover.const import DOMAIN as COVER_DOMAIN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import service
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from nicett6.command_code import simple_command_code_names
-from nicett6.tt6_cover import TT6Cover
 
 from . import EntityUpdater, NiceConfigEntry, NiceRuntimeData
 from .const import (
@@ -135,9 +136,11 @@ class NiceCover(CoverEntity):
     async def async_set_drop_percent(self, drop_percent: float) -> None:
         """Move to a percent position (thousandths accuracy) - 100% is fully down"""
         if self._has_reverse_motor_pos:
-            pos: int = 1000 - round(drop_percent * 10.0)
-        else:
+            # Controller interprets 1000 as fully down
             pos: int = round(drop_percent * 10.0)
+        else:
+            # Controller interprets 1000 as fully up
+            pos: int = 1000 - round(drop_percent * 10.0)
         await self._tt6_cover.send_pos_command(pos)
 
     async def async_send_simple_command(self, command: str) -> None:
@@ -174,9 +177,9 @@ class NiceCover(CoverEntity):
             self._attr_is_closed = self._tt6_cover.cover.is_fully_down
         if self._has_reverse_motor_pos:
             self._attr_current_cover_position = (1000 - self._tt6_cover.cover.pos) // 10
-            drop_percent_scaled: float = (1000.0 - self._tt6_cover.cover.pos) / 10.0
+            drop_percent_scaled: float = self._tt6_cover.cover.pos / 10.0
         else:
             self._attr_current_cover_position = (self._tt6_cover.cover.pos) // 10
-            drop_percent_scaled: float = self._tt6_cover.cover.pos / 10.0
+            drop_percent_scaled: float = (1000.0 - self._tt6_cover.cover.pos) / 10.0
         self._attr_extra_state_attributes = {"drop_percent": drop_percent_scaled}
         self.async_write_ha_state()
