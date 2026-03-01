@@ -8,9 +8,13 @@ The Nice TT6 control unit is used to control projector screens, garage doors, aw
 
 The control unit has an RS232 serial connection but is known to work with USB to serial converters.
 
+## Controllers
+
+The integration allows for multiple controllers.   Each controller can be added as a new configuration entry.
+
 ## Covers
 
-The Integration allows for the control of multiple Covers. There can be one or many control units, each controlling one or many Covers.
+The Integration allows for the control of multiple Covers per controller.   Each cover can be added as a configuration sub-entry of a controller.
 
 The following Home Assistant entities are created for each Cover:
 
@@ -19,49 +23,18 @@ The following Home Assistant entities are created for each Cover:
 
 The Integration offers a service called [nice.set_drop_percent](#niceset_drop_percent) which will set the drop percentage to greater precision than the standard `cover.set_cover_position` service.
 
-## Presets
-
-The Integration offers a service called [nice.apply_preset](#niceapply_preset) which will move any number of Covers to preset positions.
-
-## Projector Screen Control
-
-The Integration was designed with projector screens in mind and offers some optional features for controlling multiple Covers in a Constant Image Width (CIW) configuration.
-
-A Cover can optionally have an Image Area defined to represent the screen. Then, an optional helper called a "CIW Helper" can be defined which links a Cover that is a Screen and a Cover that is a Mask. The following `sensor` entities are created for each "CIW Helper":
-
-- Image Height
-- Image Width
-- Image Diagonal
-- Aspect Ratio
-
-## Sensors
-
-The sensors all round their values to 2 decimal places. They also offer a state variable called `full_precision_value` that is not rounded.
-
 # Initial Configuration
 
-## Step 1: Add the Integration
+## Step 1: Add a Controller
 
-Add the Integration to Home Assistant as follows:
+Add your first Controller to Home Assistant as follows:
 
-- Navigate to Configuration->Integrations
+- Navigate to Settings->Devices and Services
 - Click on Add Integration
 - Search for Nice
 - Click on the Nice integration to initiate the configuration flow
-
-## Step 2: Integration Definition
-
-Enter the details of the Integration:
-
-| Field       | Description                            |
-| ----------- | -------------------------------------- |
-| Title       | The title of the integration           |
-
-Click Submit to move to the next step.
-
-## Step 3: Create Controller(s)
-
-Enter a name for the controller and the serial port.
+- Enter a name for the controller and a serial port
+- Click Submit to create the controller.  Note that the Integration will validate the controller at this point by trying to connect to it.
 
 Examples of valid serial port definitions are:
 
@@ -69,87 +42,36 @@ Examples of valid serial port definitions are:
 - `COM3` (Windows)
 - `socket://192.168.0.100:50000` (if you are using a TCP/IP to serial converter)
 
-If there is another controller to be added then check the box "Add Another Controller?"
+Additional controllers can be added the same way, or by clicking 'Add Hub' on the Nice integration page.
 
-Click Submit to move to the next step or create another controller as appropriate. Note that the Integration will validate the controller at this point by trying to connect to it.
+## Step 2: Add Cover(s)
 
-## Step 4a: Create Cover
+From the Nice Integration page, click on 'Add Cover to Hub' and select the Controller if necessary.
 
 Enter the following details:
 
-| Field          | Description                                                                                                                                                       |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cover Name     | Name of the Cover                                                                                                                                                 |
-| Controller     | The Controller<br>Select from a drop down list                                                                                                                    |
+| Field          | Description      |
+|----------------|------------------|
+| Cover Name     | Name of the Cover                          |
 | Device Address | The TTBus address of the device<br>Get this from your vendor documentation - as an example, the projector screen might be device 2 and the mask might be device 3 |
-| Device Node    | The TTBus node of the device<br>Again, get this from the documentation - usually 4                                                                                |
-| Drop           | The maximum drop of the Cover in the unit system specified in the Integration definition                                                                          |
-| Image Area     | Check this box if the Cover is a screen<br>If the Cover has an Image Area then additional details will be collected in the next step                              |
+| Device Node    | The TTBus node of the device<br>Again, get this from the documentation - usually 4      |
+| Drop           | The maximum drop of the Cover in the unit system specified in the Integration definition                                           |
+| Inverse Motor Endpoints?           | Normally, a native position of 1000 is fully up and 0 is fully down.<br>When inverted, 0 is fully up and 1000 is fully up.     |
+| Inverse semantics?           | Normally, Opening is going up, Closing is going down and Closed is fully down.<br>When inverted, Opening is going down, Closing is going up, Closed is fully up.<br>Icons are also overridden.<br>Typically, this box would need to be checked for projector screens.     |
 
-Click on Submit to move to the next step.
+Click on Submit to create the Cover.
 
-## Step 4b: Define Image Area
+# Reconfiguration
 
-If the Cover has an Image Area then enter the following details:
+## Reconfigure a Controller
 
-| Field        | Description                                                                                     |
-| ------------ | ----------------------------------------------------------------------------------------------- |
-| Border Below | Height of the border below the image in the unit system specified in the Integration definition |
-| Height       | The height of the Image Area in the unit system specified in the Integration definition         |
-| Aspect Ratio | The Aspect Ratio                                                                                |
+Go to the Nice Integration page.  From the 3 dots next to the hub title, select "Reconfigure".   The name or serial port can be updated.
 
-Height plus the Border Below cannot be larger than the maximum drop defined in the previous step.
+## Reconfigure a Cover
 
-Click on Submit to move to the next step.
-
-## Step 5: Finish Cover
-
-If there is another Cover to be created then check "Add Another Cover?"
-
-Click on Submit to either create another Cover or finish the configuration.
-
-# Options
-
-## Options Menu
-
-Navigate to Configuration->Integrations, locate the Nice Integration and click on "Configure". The following options can be seleced from the "Choose Action" screen.
-
-| Option             | Description                                                                                                                      |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| Add CIW Helper     | Add a CIW Helper<br>This option is shown if there is at least one Cover with an Image Area (a Screen) and one without (a Mask).  |
-| Del CIW Helper     | Delete a CIW Helper<br>This option is only shown if any CIW Helpers exist.                                                       |
-| Add Preset         | Add a Preset                                                                                                                     |
-| Del Preset         | Delete a Preset<br>This option is only shown if any Presets exist.                                                               |
-
-Select an option and click on Submit to move to the next step.
-
-## Adding a CIW Helper
-
-Enter the following details and then click on Submit to create the CIW Helper.
-
-| Field             | Description                                                                                                                                                       |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Name              | A friendly name for the Object                                                                                                                                    |
-| Screen            | Name of the screen<br>Only Covers with an Image Area can be selected                                                                                              |
-| Mask              | Name of the mask<br>Only covers without an image Area can be selected                                                                                             |
-
-## Deleting CIW Helpers
-
-Select the CIW Helper(s) to be deleted. Click on Submit to delete them.
-
-## Adding a Preset
-
-Give the Preset a name and select the list of Covers to be moved. Click Submit to define the drop for each Cover in turn.
-
-## Deleting Presets
-
-Select the Preset(s) to be deleted. Click on Submit to delete them.
+Go to the Nice Integration page.  Click on the cog icon next to the Cover sub entry title.   Any of the details can be updated.
 
 # Services
-
-## nice.apply_preset
-
-Takes the name of the Preset as the argument
 
 ## nice.set_drop_percent
 
@@ -189,6 +111,14 @@ Valid commands are as follows.
 }
 ```
 
+## nice.refresh_position
+
+Re-request the position of the selected cover
+
+## nice.reconnect
+
+Reconnect to the controller(s)
+
 # Emulator
 
 If you would like to experiment with this integration then you can run an emulator of the Nice TT6 controller.
@@ -209,3 +139,14 @@ python -m nicett6.emulator
 ```
 
 Use it by configuring a Controller with a serial port like `socket://localhost:50200`
+
+By default, the emulator will create four covers:
+
+| Name | Address | Node | Description |
+|------|---------|------|-------------|
+| Screen | 2 | 4 | A projector screen |
+| Mask | 3 | 4 | A mask for a projector screen |
+| Blind | 10 | 4 | A blind with normal endpoints |
+| Blind Inverted | 11 | 4 | A blind with inverted endpoints |
+
+See the nicett6 documentation for more configuration options.
