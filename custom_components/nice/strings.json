@@ -3,7 +3,7 @@
   "config": {
     "step": {
       "controller": {
-        "title": "Define Controller",
+        "title": "Configure Controller",
         "description": "Enter the details of this controller",
         "data": {
           "name": "Name",
@@ -29,8 +29,8 @@
       "entry_type": "Cover Sub-entry",
       "step": {
         "cover": {
-          "title": "Create Cover",
-          "description": "Enter the details for Cover #{sequence_number}",
+          "title": "Configure Cover",
+          "description": "Enter the details for Cover: {name}",
           "data": {
             "name": "Cover Name",
             "controller": "Controller",
