@@ -1,7 +1,4 @@
 import voluptuous as vol
-from nicett6.command_code import simple_command_code_names
-from nicett6.tt6_cover import TT6Cover
-
 from homeassistant.components.cover import (
     ATTR_POSITION,
     CoverDeviceClass,
@@ -12,6 +9,8 @@ from homeassistant.components.cover.const import DOMAIN as COVER_DOMAIN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import service
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from nicett6.command_code import simple_command_code_names
+from nicett6.tt6_cover import TT6Cover
 
 from . import EntityUpdater, NiceConfigEntry, NiceRuntimeData
 from .const import (
@@ -37,8 +36,8 @@ async def async_setup_entry(
             NiceCover(
                 cover_id,
                 ncd.tt6_cover,
-                ncd.has_reverse_motor_pos,
-                ncd.has_reverse_semantics,
+                ncd.has_inverse_endpoints,
+                ncd.has_inverse_semantics,
             )
         ]
         async_add_entities(
@@ -85,14 +84,14 @@ class NiceCover(CoverEntity):
         self,
         cover_id: str,
         tt6_cover: TT6Cover,
-        has_reverse_motor_pos: bool,
-        has_reverse_semantics: bool,
+        has_inverse_endpoints: bool,
+        has_inverse_semantics: bool,
     ) -> None:
         """Create HA entity representing a cover"""
         self._attr_unique_id = cover_id
         self._tt6_cover: TT6Cover = tt6_cover
-        self._has_reverse_motor_pos = has_reverse_motor_pos
-        self._has_reverse_semantics = has_reverse_semantics
+        self._has_inverse_endpoints = has_inverse_endpoints
+        self._has_inverse_semantics = has_inverse_semantics
         self._attr_has_entity_name = True
         self._attr_name = None
         self._attr_is_closed = None  # Not initialised by CoverEntity
@@ -121,7 +120,7 @@ class NiceCover(CoverEntity):
 
     async def async_set_cover_position(self, **kwargs) -> None:
         """Move to an int position - 0 is closed, 100 is fully open"""
-        if self._has_reverse_motor_pos:
+        if self._has_inverse_endpoints:
             # Controller interprets 1000 as fully down
             # ATTR_POSITION of 100 (open) should map to POS of 0 (up)
             # ATTR_POSITION of 0 (closed) should map to POS of 1000 (down)
@@ -135,7 +134,7 @@ class NiceCover(CoverEntity):
 
     async def async_set_drop_percent(self, drop_percent: float) -> None:
         """Move to a percent position (thousandths accuracy) - 100% is fully down"""
-        if self._has_reverse_motor_pos:
+        if self._has_inverse_endpoints:
             # Controller interprets 1000 as fully down
             pos: int = round(drop_percent * 10.0)
         else:
@@ -159,7 +158,7 @@ class NiceCover(CoverEntity):
         self._tt6_cover.cover.detach(self._updater)
 
     async def handle_update(self):
-        if self._has_reverse_semantics:
+        if self._has_inverse_semantics:
             self._attr_is_opening = self._tt6_cover.cover.is_going_down
             self._attr_is_closing = self._tt6_cover.cover.is_going_up
             self._attr_is_closed = self._tt6_cover.cover.is_fully_up
@@ -176,7 +175,7 @@ class NiceCover(CoverEntity):
             self._attr_is_closing = self._tt6_cover.cover.is_going_down
             self._attr_is_closed = self._tt6_cover.cover.is_fully_down
         native_cover_pos = self._tt6_cover.cover.pos
-        if self._has_reverse_motor_pos:
+        if self._has_inverse_endpoints:
             self._attr_current_cover_position = (1000 - native_cover_pos) // 10
             drop_percent_scaled: float = native_cover_pos / 10.0
         else:

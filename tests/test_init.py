@@ -154,24 +154,26 @@ async def test_async_migrate_entry_v1_to_v2_1(
 
     mask_subentry = updated_subentries[0]
     assert mask_subentry.title == "Cover: Mask"
-    assert mask_subentry.data == {
-        "address": 3,
-        "drop": 0.67,
-        "has_reverse_semantics": True,
+    expected_mask_subentry_data = {
         "name": "Mask",
+        "address": 3,
         "node": 4,
+        "drop": 0.67,
+        "has_inverse_semantics": True,
     }
+    assert mask_subentry.data == expected_mask_subentry_data
     assert mask_subentry.unique_id == "03/04"
 
     screen_subentry = updated_subentries[1]
     assert screen_subentry.title == "Cover: Screen"
-    assert screen_subentry.data == {
-        "address": 2,
-        "drop": 1.825,
-        "has_reverse_semantics": True,
+    expected_screen_subentry_data = {
         "name": "Screen",
+        "address": 2,
         "node": 4,
+        "drop": 1.825,
+        "has_inverse_semantics": True,
     }
+    assert screen_subentry.data == expected_screen_subentry_data
     assert screen_subentry.unique_id == "02/04"
 
     device_registry = dr.async_get(hass)

@@ -20,8 +20,8 @@ from serial import SerialException
 from .const import (
     CONF_ADDRESS,
     CONF_DROP,
-    CONF_HAS_REVERSE_MOTOR_POS,
-    CONF_HAS_REVERSE_SEMANTICS,
+    CONF_HAS_INVERSE_ENDPOINTS,
+    CONF_HAS_INVERSE_SEMANTICS,
     CONF_NODE,
     CONF_SERIAL_PORT,
     DOMAIN,
@@ -177,8 +177,8 @@ class CoverSubentryFlowHandler(ConfigSubentryFlow):
                 vol.Required(CONF_DROP): vol.All(
                     vol.Coerce(float), vol.Range(min=0, min_included=False)
                 ),
-                vol.Optional(CONF_HAS_REVERSE_MOTOR_POS, default=False): bool,
-                vol.Optional(CONF_HAS_REVERSE_SEMANTICS, default=False): bool,
+                vol.Optional(CONF_HAS_INVERSE_ENDPOINTS, default=False): bool,
+                vol.Optional(CONF_HAS_INVERSE_SEMANTICS, default=False): bool,
             }
         )
 

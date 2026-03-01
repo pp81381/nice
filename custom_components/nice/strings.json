@@ -37,13 +37,13 @@
             "address": "Device Address",
             "node": "Node",
             "drop": "Drop",
-            "has_reverse_motor_pos": "Reverse motor position?",
-            "has_reverse_semantics": "Has reverse semantics?",
+            "has_inverse_endpoints": "Inverse motor endpoints?",
+            "has_inverse_semantics": "Inverse semantics?",
             "has_image_area": "Image area?"
           },
           "data_description": {
-            "has_reverse_motor_pos": "Normally, 100% is fully up and 0% is fully down.   When reversed, 0% is fully up and 100% is fully down.",
-            "has_reverse_semantics": "Normally, Opening is going up, Closing is going down and Closed is fully down.  When reversed, Opening is going down, Closing is going up, Closed is fully up.  Icons are also overridden."
+            "has_inverse_endpoints": "Normally, a native position of 1000 is fully up and 0 is fully down.   When inverted, 0 is fully up and 1000 is fully up.",
+            "has_inverse_semantics": "Normally, Opening is going up, Closing is going down and Closed is fully down.  When inverted, Opening is going down, Closing is going up, Closed is fully up.  Icons are also overridden."
           }
         }
       },

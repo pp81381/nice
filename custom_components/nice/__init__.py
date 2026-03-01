@@ -30,8 +30,8 @@ from nicett6.utils import AsyncObservable, AsyncObserver
 from .const import (
     CONF_ADDRESS,
     CONF_DROP,
-    CONF_HAS_REVERSE_MOTOR_POS,
-    CONF_HAS_REVERSE_SEMANTICS,
+    CONF_HAS_INVERSE_ENDPOINTS,
+    CONF_HAS_INVERSE_SEMANTICS,
     CONF_NODE,
     CONF_SERIAL_PORT,
     DOMAIN,
@@ -119,8 +119,8 @@ class NiceControllerRunTimeData:
 class NiceCoverRuntimeData:
     name: str
     tt6_cover: TT6Cover
-    has_reverse_motor_pos: bool
-    has_reverse_semantics: bool
+    has_inverse_endpoints: bool
+    has_inverse_semantics: bool
 
 
 async def make_cover_runtime_data(
@@ -129,14 +129,14 @@ async def make_cover_runtime_data(
 ) -> NiceCoverRuntimeData:
     """Factory for cover run time data"""
     name = data[CONF_NAME]
-    has_reverse_motor_pos = data.get(CONF_HAS_REVERSE_MOTOR_POS, False)
-    has_reverse_semantics = data.get(CONF_HAS_REVERSE_SEMANTICS, False)
-    cover = Cover(name, data[CONF_DROP], has_reverse_motor_pos)
+    has_inverse_endpoints = data.get(CONF_HAS_INVERSE_ENDPOINTS, False)
+    has_inverse_semantics = data.get(CONF_HAS_INVERSE_SEMANTICS, False)
+    cover = Cover(name, data[CONF_DROP], has_inverse_endpoints)
     tt6_cover = await controller.add_cover(
         TTBusDeviceAddress(data[CONF_ADDRESS], data[CONF_NODE]), cover
     )
     return NiceCoverRuntimeData(
-        name, tt6_cover, has_reverse_motor_pos, has_reverse_semantics
+        name, tt6_cover, has_inverse_endpoints, has_inverse_semantics
     )
 
 
@@ -246,16 +246,13 @@ async def async_migrate_entry(hass: HomeAssistant, entry: NiceConfigEntry) -> bo
             ]
             for old_cover_id, cover_data in covers_for_controller:
                 new_cover_data = {
-                    k: v
-                    for k, v in cover_data.items()
-                    if k
-                    in {
-                        CONF_NAME,
-                        CONF_ADDRESS,
-                        CONF_NODE,
-                        CONF_DROP,
-                        CONF_HAS_REVERSE_SEMANTICS,
-                    }
+                    CONF_NAME: cover_data[CONF_NAME],
+                    CONF_ADDRESS: cover_data[CONF_ADDRESS],
+                    CONF_NODE: cover_data[CONF_NODE],
+                    CONF_DROP: cover_data[CONF_DROP],
+                    CONF_HAS_INVERSE_SEMANTICS: cover_data.get(
+                        "has_reverse_semantics", False
+                    ),
                 }
                 subentry = ConfigSubentry(
                     subentry_type=SUBENTRY_TYPE_COVER,

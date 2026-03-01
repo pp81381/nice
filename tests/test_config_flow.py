@@ -12,8 +12,8 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.nice.const import (
     CONF_ADDRESS,
     CONF_DROP,
-    CONF_HAS_REVERSE_MOTOR_POS,
-    CONF_HAS_REVERSE_SEMANTICS,
+    CONF_HAS_INVERSE_ENDPOINTS,
+    CONF_HAS_INVERSE_SEMANTICS,
     CONF_NODE,
     CONF_SERIAL_PORT,
     DOMAIN,
@@ -43,8 +43,8 @@ TEST_COVER_1_INPUT_UPDATE = {
     CONF_ADDRESS: 3,
     CONF_NODE: 4,
     CONF_DROP: 2.0,
-    CONF_HAS_REVERSE_MOTOR_POS: True,
-    CONF_HAS_REVERSE_SEMANTICS: True,
+    CONF_HAS_INVERSE_ENDPOINTS: True,
+    CONF_HAS_INVERSE_SEMANTICS: True,
 }
 
 TEST_COVER_1_UNIQUE_ID_UPDATE = "03/04"
@@ -242,8 +242,8 @@ async def test_cover_subentry_reconfigure(
         TEST_COVER_1_INPUT[CONF_ADDRESS],
         TEST_COVER_1_INPUT[CONF_NODE],
         TEST_COVER_1_INPUT[CONF_DROP],
-        TEST_COVER_1_INPUT[CONF_HAS_REVERSE_MOTOR_POS],
-        TEST_COVER_1_INPUT[CONF_HAS_REVERSE_SEMANTICS],
+        TEST_COVER_1_INPUT[CONF_HAS_INVERSE_ENDPOINTS],
+        TEST_COVER_1_INPUT[CONF_HAS_INVERSE_SEMANTICS],
     ]
 
     result = await hass.config_entries.subentries.async_configure(
