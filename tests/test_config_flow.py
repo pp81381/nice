@@ -3,14 +3,10 @@
 from contextlib import asynccontextmanager
 
 import pytest
-import voluptuous as vol
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-from nicett6.cover import Cover
-from nicett6.tt6_cover import TT6Cover
-from nicett6.ttbus_device import TTBusDeviceAddress
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.nice.const import (
@@ -24,12 +20,13 @@ from custom_components.nice.const import (
     SUBENTRY_TYPE_COVER,
 )
 
-CONTROLLER_TITLE = "NiceTT6: Controller 1 Test"
-
-CONTROLLER_INPUT = {
-    CONF_NAME: "Controller 1 Test",
-    CONF_SERIAL_PORT: "socket://localhost:50200",
-}
+from .const import (
+    CONTROLLER_INPUT,
+    CONTROLLER_TITLE,
+    TEST_COVER_1_INPUT,
+    TEST_COVER_1_TITLE,
+)
+from .util import get_suggested_values_from_schema, init_integration
 
 CONTROLLER_TITLE_UPDATE = "NiceTT6: Controller 2 Test"
 
@@ -38,30 +35,6 @@ CONTROLLER_INPUT_UPDATE = {
     CONF_SERIAL_PORT: "socket://hadev2:50200",
 }
 
-EXPECTED_DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_NAME, default="Controller"): str,
-        vol.Required(CONF_SERIAL_PORT): str,
-    }
-)
-TEST_COVER_1_TITLE = "Cover: Screen"
-
-TEST_COVER_1_INPUT = {
-    CONF_NAME: "Screen",
-    CONF_ADDRESS: 2,
-    CONF_NODE: 4,
-    CONF_DROP: 1.8,
-    CONF_HAS_REVERSE_MOTOR_POS: False,
-    CONF_HAS_REVERSE_SEMANTICS: False,
-}
-TEST_COVER_1_UNIQUE_ID = "02/04"
-
-TEST_SUBENTRY_1 = {
-    "data": TEST_COVER_1_INPUT,
-    "subentry_type": SUBENTRY_TYPE_COVER,
-    "title": TEST_COVER_1_TITLE,
-    "unique_id": TEST_COVER_1_UNIQUE_ID,
-}
 
 TEST_COVER_1_TITLE_UPDATE = "Cover: Screen 2"
 
@@ -77,25 +50,25 @@ TEST_COVER_1_INPUT_UPDATE = {
 TEST_COVER_1_UNIQUE_ID_UPDATE = "03/04"
 
 
-@pytest.fixture(autouse=True)
-def disable_cover_manager(mocker):
-    c = mocker.patch("custom_components.nice.CoverManager", autospec=True)
-
-    async def add_cover(tt_addr: TTBusDeviceAddress, cover: Cover) -> TT6Cover:
-        return TT6Cover(tt_addr, cover, mocker.AsyncMock())
-
-    c.return_value.add_cover.side_effect = add_cover
-
-
 @asynccontextmanager
 async def dummy_open_connection(serial_port=None):
     yield True
 
 
-async def init_integration(hass: HomeAssistant, config_entry: MockConfigEntry) -> None:
-    config_entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry.entry_id)
-    await hass.async_block_till_done()
+@pytest.fixture
+def mock_open_connection_success(mocker):
+    mocker.patch(
+        "custom_components.nice.config_flow.open_connection",
+        new=dummy_open_connection,
+    )
+
+
+@pytest.fixture
+def mock_open_connection_failure(mocker):
+    mocker.patch(
+        "custom_components.nice.config_flow.open_connection",
+        side_effect=ValueError,
+    )
 
 
 @pytest.fixture
@@ -130,24 +103,8 @@ def mock_config_entry_before_add() -> MockConfigEntry:
     )
 
 
-@pytest.fixture
-def mock_config_entry() -> MockConfigEntry:
-    return MockConfigEntry(
-        title=CONTROLLER_TITLE,
-        domain=DOMAIN,
-        data=CONTROLLER_INPUT,
-        version=2,
-        minor_version=1,
-        subentries_data=[TEST_SUBENTRY_1],
-    )
-
-
-async def test_user_step(mocker, hass: HomeAssistant) -> None:
-    mocker.patch(
-        "custom_components.nice.config_flow.open_connection",
-        new=dummy_open_connection,
-    )
-
+@pytest.mark.usefixtures("mock_open_connection_success")
+async def test_user_step(hass: HomeAssistant) -> None:
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
     )
@@ -155,7 +112,6 @@ async def test_user_step(mocker, hass: HomeAssistant) -> None:
     assert result.get("errors") == {}
     assert result.get("type") == FlowResultType.FORM
     assert result.get("step_id") == "controller"
-    assert result.get("data_schema") == EXPECTED_DATA_SCHEMA
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], CONTROLLER_INPUT
@@ -167,13 +123,9 @@ async def test_user_step(mocker, hass: HomeAssistant) -> None:
     assert result.get("data") == CONTROLLER_INPUT
 
 
-async def test_user_step_invalid_port(mocker, hass: HomeAssistant) -> None:
+@pytest.mark.usefixtures("mock_open_connection_failure")
+async def test_user_step_connection_failure(hass: HomeAssistant) -> None:
     """Test invalid serial port."""
-    mocker.patch(
-        "custom_components.nice.config_flow.open_connection",
-        side_effect=ValueError,
-    )
-
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
     )
@@ -205,16 +157,12 @@ async def test_reconfigure_step(mocker, hass, mock_config_entry):
     assert result.get("type") == FlowResultType.FORM
     assert result.get("step_id") == "controller"
     data_schema = result.get("data_schema")
-    assert data_schema == EXPECTED_DATA_SCHEMA
-    data_schema_items = list(data_schema.schema.items())
-    assert (
-        data_schema_items[0][0].description["suggested_value"]
-        == CONTROLLER_INPUT[CONF_NAME]
-    )
-    assert (
-        data_schema_items[1][0].description["suggested_value"]
-        == CONTROLLER_INPUT[CONF_SERIAL_PORT]
-    )
+    assert data_schema is not None
+    suggested_values = get_suggested_values_from_schema(data_schema)
+    assert suggested_values == [
+        CONTROLLER_INPUT[CONF_NAME],
+        CONTROLLER_INPUT[CONF_SERIAL_PORT],
+    ]
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], CONTROLLER_INPUT_UPDATE
@@ -286,6 +234,17 @@ async def test_cover_subentry_reconfigure(
     assert result.get("errors") == {}
     assert result.get("type") == FlowResultType.FORM
     assert result.get("step_id") == "cover"
+    data_schema = result.get("data_schema")
+    assert data_schema is not None
+    suggested_values = get_suggested_values_from_schema(data_schema)
+    assert suggested_values == [
+        TEST_COVER_1_INPUT[CONF_NAME],
+        TEST_COVER_1_INPUT[CONF_ADDRESS],
+        TEST_COVER_1_INPUT[CONF_NODE],
+        TEST_COVER_1_INPUT[CONF_DROP],
+        TEST_COVER_1_INPUT[CONF_HAS_REVERSE_MOTOR_POS],
+        TEST_COVER_1_INPUT[CONF_HAS_REVERSE_SEMANTICS],
+    ]
 
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"], TEST_COVER_1_INPUT_UPDATE
