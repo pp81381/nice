@@ -175,11 +175,15 @@ class NiceCover(CoverEntity):
             self._attr_is_opening = self._tt6_cover.cover.is_going_up
             self._attr_is_closing = self._tt6_cover.cover.is_going_down
             self._attr_is_closed = self._tt6_cover.cover.is_fully_down
+        native_cover_pos = self._tt6_cover.cover.pos
         if self._has_reverse_motor_pos:
-            self._attr_current_cover_position = (1000 - self._tt6_cover.cover.pos) // 10
-            drop_percent_scaled: float = self._tt6_cover.cover.pos / 10.0
+            self._attr_current_cover_position = (1000 - native_cover_pos) // 10
+            drop_percent_scaled: float = native_cover_pos / 10.0
         else:
-            self._attr_current_cover_position = (self._tt6_cover.cover.pos) // 10
-            drop_percent_scaled: float = (1000.0 - self._tt6_cover.cover.pos) / 10.0
-        self._attr_extra_state_attributes = {"drop_percent": drop_percent_scaled}
+            self._attr_current_cover_position = (native_cover_pos) // 10
+            drop_percent_scaled: float = (1000.0 - native_cover_pos) / 10.0
+        self._attr_extra_state_attributes = {
+            "drop_percent": drop_percent_scaled,
+            "native_cover_position": native_cover_pos,
+        }
         self.async_write_ha_state()
