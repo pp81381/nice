@@ -128,6 +128,16 @@ class CoverSubentryFlowHandler(ConfigSubentryFlow):
             if e.subentry_type == SUBENTRY_TYPE_COVER
         )
 
+    def get_default_name(self) -> str:
+        if self.source == SOURCE_USER:
+            seq_num = self.num_existing_subentries() + 1
+            return f"Cover {seq_num}"
+        elif self.source == SOURCE_RECONFIGURE:
+            subentry = self._get_reconfigure_subentry()
+            return subentry.data[CONF_NAME]
+        else:
+            raise ValueError("Unexpected source encountered")
+
     async def async_step_cover(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
@@ -155,11 +165,11 @@ class CoverSubentryFlowHandler(ConfigSubentryFlow):
             else:
                 raise ValueError("Unexpected source encountered")
 
-        seq_num = self.num_existing_subentries() + 1
+        default_name = self.get_default_name()
 
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_NAME, default=f"Cover {seq_num}"): str,
+                vol.Required(CONF_NAME, default=default_name): str,
                 vol.Required(CONF_ADDRESS): vol.All(vol.Coerce(int), vol.Range(min=0)),
                 vol.Required(CONF_NODE, default=4): vol.All(
                     vol.Coerce(int), vol.Range(min=0)
@@ -182,5 +192,5 @@ class CoverSubentryFlowHandler(ConfigSubentryFlow):
             step_id="cover",
             data_schema=data_schema,
             errors=errors,
-            description_placeholders={"sequence_number": str(seq_num)},
+            description_placeholders={"name": default_name},
         )
