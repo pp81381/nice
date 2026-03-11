@@ -57,6 +57,17 @@
       }
     }
   },
+  "exceptions": {
+    "entry_not_loaded": {
+      "message": "Entry not loaded: {entry}"
+    },
+    "invalid_device_id": {
+      "message": "Invalid device ID specified: {device_id}"
+    },
+    "config_entry_not_found": {
+      "message": "Config entry not found for device: {device_id}"
+    }
+  },
   "selector": {
     "simple_command": {
       "options": {
@@ -71,7 +82,13 @@
   "services": {
     "reconnect": {
       "name": "Reconnect",
-      "description": "Reconnect to the controller(s)"
+      "description": "Reconnect to the controller(s)",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Controller to reconnect to."
+        }
+      }
     },
     "set_drop_percent": {
       "name": "Set Cover Drop Percent",

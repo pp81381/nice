@@ -12,13 +12,13 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from nicett6.command_code import simple_command_code_names
 from nicett6.tt6_cover import TT6Cover
 
-from . import EntityUpdater, NiceConfigEntry, NiceRuntimeData
 from .const import (
     DOMAIN,
     SERVICE_REFRESH_POSITION,
     SERVICE_SEND_SIMPLE_COMMAND,
     SERVICE_SET_DROP_PERCENT,
 )
+from .runtime_data import EntityUpdater, NiceConfigEntry, NiceRuntimeData
 
 
 async def async_setup_entry(

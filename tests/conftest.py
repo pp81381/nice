@@ -19,7 +19,7 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 @pytest.fixture(autouse=True)
 def disable_cover_manager(mocker):
     """Mock the CoverManager to prevent it trying to open a serial connection during tests."""
-    c = mocker.patch("custom_components.nice.CoverManager", autospec=True)
+    c = mocker.patch("custom_components.nice.runtime_data.CoverManager", autospec=True)
 
     async def add_cover(tt_addr: TTBusDeviceAddress, cover: Cover) -> TT6Cover:
         return TT6Cover(tt_addr, cover, mocker.AsyncMock())

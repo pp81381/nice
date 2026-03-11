@@ -12,8 +12,8 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util.unit_system import METRIC_SYSTEM
 from nicett6.cover import Cover
 
-from . import EntityUpdater, NiceConfigEntry, NiceRuntimeData
 from .const import DOMAIN
+from .runtime_data import EntityUpdater, NiceConfigEntry, NiceRuntimeData
 
 COVER_VALUE_FN = Callable[[Cover], float | None]
 

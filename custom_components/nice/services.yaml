@@ -1,12 +1,11 @@
-apply_preset:
-  fields:
-    name:
-      required: true
-      example: Preset 1
-      selector:
-        text:
-
 reconnect:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: nice
+          model: "Nice TT6 Control Unit"
 
 set_drop_percent:
   target:
