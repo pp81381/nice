@@ -117,7 +117,7 @@ Re-request the position of the selected cover
 
 ## nice.reconnect
 
-Reconnect to the controller(s)
+Reconnect to the selected controller
 
 # Emulator
 
